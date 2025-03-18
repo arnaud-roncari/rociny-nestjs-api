@@ -1,0 +1,84 @@
+services:
+  rociny-backend:
+    build: .
+    volumes:
+      # Mount the source code into the container, this allows for hot reloading
+      - ./src:/code/src
+    ports:
+      - ${NESTJS_PORT}:${NESTJS_PORT}
+    networks:
+      - my-network
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /code
+    environment:
+      - PORT=${NESTJS_PORT}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_HOST=rociny-postgres
+      - DATABASE_PORT=${POSTGRES_PORT}
+      - DATABASE_USER=rociny-postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_NAME=${POSTGRES_DB}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_SCHEME=${MINIO_SCHEME}
+      - MINIO_PORT=${MINIO_PORT}
+    depends_on:
+      - rociny-postgres
+      - rociny-minio
+
+  rociny-postgres:
+    image: postgres:latest
+    container_name: rociny-postgres
+    restart: always
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    networks:
+      - my-network
+    environment:
+      POSTGRES_USER: rociny-postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d
+
+  rociny-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rociny-pgadmin
+    ports:
+      - ${PGADMIN_PORT_OUT}:${PGADMIN_PORT_IN}
+    networks:
+      - my-network
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    depends_on:
+      - rociny-postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  rociny-minio:
+    image: bitnami/minio:latest
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      - my-network
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_SCHEME=${MINIO_SCHEME}
+      - MINIO_DEFAULT_BUCKETS=user-pictures
+    volumes:
+      - minio_data:/data
+
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  minio_data:
