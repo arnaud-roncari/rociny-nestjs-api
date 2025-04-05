@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { PostgresqlService } from './modules/postgresql/postgresql.service';
 import { CrashModule } from './modules/crash/dtos/crash.module';
 import { JwtModule } from '@nestjs/jwt';
-import { InfluencerModule } from './modules/influencer/influencer.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -11,7 +11,7 @@ import { InfluencerModule } from './modules/influencer/influencer.module';
       secret: process.env.JWT_SECRET,
     }),
     CrashModule,
-    InfluencerModule,
+    UserModule,
   ],
   controllers: [],
   providers: [PostgresqlService],

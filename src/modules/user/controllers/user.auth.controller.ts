@@ -1,12 +1,12 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { InfluencerAuthService } from '../services/influencer.auth.service';
 import { LoginDto } from '../dtos/login.dto';
 import { LoggedDto } from '../dtos/logged.dto';
+import { UserAuthService } from '../services/user.auth.service';
 
-@Controller('influencer')
-export class InfluencerAuthController {
-  constructor(private readonly authService: InfluencerAuthService) {}
+@Controller('user/auth')
+export class UserAuthController {
+  constructor(private readonly authService: UserAuthService) {}
 
   /**
    * Handle POST requests to log a user.

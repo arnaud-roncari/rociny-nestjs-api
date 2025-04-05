@@ -1,7 +1,5 @@
 CREATE TABLE api.influencers (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE,
-    password_hash VARCHAR(1024),
-    picture_path VARCHAR(1024) NULL,
+    user_id INTEGER NOT NULL REFERENCES api.users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

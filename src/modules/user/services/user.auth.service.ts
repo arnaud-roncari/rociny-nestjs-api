@@ -2,15 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtContent } from '../../../commons/types/jwt-content';
 import * as argon2 from 'argon2';
-import { InfluencerRepository } from '../repositories/influencer.repository';
 import { UserNotFoundException } from 'src/commons/errors/user-not-found';
 import { InvalidPasswordException } from 'src/commons/errors/invalid-password';
-import { AccountType } from 'src/commons/enums/account_type';
+import { UserRepository } from '../repositories/user.repository';
 
 @Injectable()
-export class InfluencerAuthService {
+export class UserAuthService {
   constructor(
-    private readonly influencerRepository: InfluencerRepository,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
   ) {}
   /**
@@ -21,7 +20,7 @@ export class InfluencerAuthService {
    */
   async login(email: string, password: string): Promise<string> {
     // Get the user and throw an error if it doesn't exist
-    const user = await this.influencerRepository.getUserByEmail(email);
+    const user = await this.userRepository.getUserByEmail(email);
     if (!user) {
       throw new UserNotFoundException();
     }
@@ -33,7 +32,7 @@ export class InfluencerAuthService {
     // Generate an accessToken
     return await this.jwtService.signAsync({
       id: user.id,
-      account_type: AccountType.influencer,
+      account_type: user.accountType,
     } as JwtContent);
   }
 }
