@@ -1,16 +1,16 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsEnum, IsObject, IsString } from 'class-validator';
+import { MailTemplate } from '../enums/mail-template.enum';
 
 export class SendMailDto {
-  @ApiProperty({ example: 'destinataire@example.com' })
   @IsEmail()
   to: string;
 
-  @ApiProperty({ example: 'Bienvenue sur MonApp' })
-  @IsNotEmpty()
+  @IsEnum(MailTemplate)
+  template: MailTemplate;
+
+  @IsString()
   subject: string;
 
-  @ApiProperty({ example: 'Voici le contenu du message HTML ou texte.' })
-  @IsNotEmpty()
-  message: string;
+  @IsObject()
+  context: Record<string, any>;
 }

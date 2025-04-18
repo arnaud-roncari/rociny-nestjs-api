@@ -12,6 +12,8 @@ import { UserAlreadyExists } from 'src/commons/errors/user-already-exist';
 import { InvalidCodeException } from 'src/commons/errors/invalid-code';
 import { UserForgettingPasswordEntity } from '../entities/user_forgetting_password.entity';
 import { UserAlreadyResetingPassword } from 'src/commons/errors/user-already-reseting-password';
+import { MailService } from '../../mail/services/mail.service';
+import { MailTemplate } from '../../mail/enums/mail-template.enum';
 
 @Injectable()
 export class UserAuthService {
@@ -34,6 +36,7 @@ export class UserAuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
@@ -100,7 +103,6 @@ export class UserAuthService {
 
     // Add the user to the array of users pending validation (hashed password, generated code).
     let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
-    console.log(`Verification code for ${email} is ${verificationCode}.`); // Remove after implementing email sending
     this.usersRegistering.push(
       new UserRegisteringEntity({
         email,
@@ -124,7 +126,14 @@ export class UserAuthService {
     );
 
     // Send an email with the verification code
-    // TODO : Implement email sending with the verification code.
+    await this.mailService.sendMail({
+      to: email,
+      subject: 'Votre code de vérification Rociny',
+      template: MailTemplate.VERIFICATION_CODE,
+      context: {
+        code: verificationCode,
+      },
+    });
   }
 
   /**
@@ -182,6 +191,14 @@ export class UserAuthService {
     }
 
     /// TODO : Implement email sending with the verification code.
+    await this.mailService.sendMail({
+      to: email,
+      subject: 'Votre code de vérification Rociny',
+      template: MailTemplate.VERIFICATION_CODE,
+      context: {
+        code: user.verificationCode,
+      },
+    });
   }
 
   /**
@@ -210,7 +227,6 @@ export class UserAuthService {
 
     // Add the user to the array of users pending validation.
     let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
-    console.log(`Verification code for ${email} is ${verificationCode}.`); // Remove after implementing email sending
     this.usersForgettingPassword.push(
       new UserForgettingPasswordEntity({
         email,
@@ -232,7 +248,14 @@ export class UserAuthService {
     );
 
     // Send an email with the verification code
-    // TODO : Implement email sending with the verification code.
+    await this.mailService.sendMail({
+      to: email,
+      subject: 'Votre code de réinitialisation de mot de passe - Rociny',
+      template: MailTemplate.RESET_PASSWORD,
+      context: {
+        code: verificationCode,
+      },
+    });
   }
 
   /**
@@ -295,6 +318,13 @@ export class UserAuthService {
       throw new UserNotFoundException();
     }
 
-    /// TODO : Implement email sending with the verification code.
+    await this.mailService.sendMail({
+      to: email,
+      subject: 'Votre code de réinitialisation de mot de passe - Rociny',
+      template: MailTemplate.RESET_PASSWORD,
+      context: {
+        code: user.verificationCode,
+      },
+    });
   }
 }

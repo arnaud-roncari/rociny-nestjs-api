@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { google } from 'googleapis';
-import { SendMailDto } from './dto/send-mail.dto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as handlebars from 'handlebars';
 import * as dotenv from 'dotenv';
+import { SendMailDto } from '../dto/send-mail.dto';
 
 dotenv.config();
 
@@ -20,6 +23,16 @@ export class MailService {
     });
   }
 
+  // Compile le template avec les variables contextuelles
+  private compileTemplate(templateName: string, context: any) {
+    const filePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
+    const templateContent = fs.readFileSync(filePath, 'utf-8');
+    
+    // Compilation du template avec Handlebars
+    const compiledTemplate = handlebars.compile(templateContent);
+    return compiledTemplate(context);
+  }
+
   async sendMail(dto: SendMailDto) {
     const accessToken = await this.oAuth2Client.getAccessToken();
 
@@ -35,10 +48,8 @@ export class MailService {
       },
     });
 
-    const htmlTemplate = `
-      <h2>${dto.subject}</h2>
-      <p>${dto.message}</p>
-    `;
+    // Utilisation du template dynamique basé sur l'Enum
+    const htmlTemplate = this.compileTemplate(dto.template, dto.context);
 
     const mailOptions = {
       from: `"${process.env.APP_NAME}" <${process.env.GMAIL_USER}>`,
