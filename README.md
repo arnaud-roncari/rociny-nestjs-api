@@ -41,7 +41,7 @@ In the root directory of the project, create a `.env` file with the following co
 # POSTGRES
 POSTGRES_PORT=5432
 POSTGRES_PASSWORD=yourpassword
-POSTGRES_DB=rociny-spostgres
+POSTGRES_DB=rociny-postgres
 
 # PGADMIN
 PGADMIN_PORT_OUT=5050
