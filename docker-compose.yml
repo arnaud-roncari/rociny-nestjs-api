@@ -70,7 +70,7 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_SCHEME=${MINIO_SCHEME}
-      - MINIO_DEFAULT_BUCKETS=user-pictures
+      - MINIO_DEFAULT_BUCKETS=influencer-pictures,policies,portfolios
     volumes:
       - minio_data:/data
 

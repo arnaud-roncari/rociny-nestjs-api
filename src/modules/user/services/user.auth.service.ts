@@ -14,6 +14,8 @@ import { UserForgettingPasswordEntity } from '../entities/user_forgetting_passwo
 import { UserAlreadyResetingPassword } from 'src/commons/errors/user-already-reseting-password';
 import { MailService } from '../../mail/services/mail.service';
 import { MailTemplate } from '../../mail/enums/mail-template.enum';
+import { InfluencerRepository } from '../repositories/influencer.repository';
+import { CompanyRepository } from '../repositories/company.repository';
 
 @Injectable()
 export class UserAuthService {
@@ -37,6 +39,8 @@ export class UserAuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly influencerRepository: InfluencerRepository,
+    private readonly companyRepository: CompanyRepository,
   ) {}
 
   /**
@@ -149,7 +153,7 @@ export class UserAuthService {
   async verifyRegisterCode(
     email: string,
     verificationCode: number,
-  ): Promise<void> {
+  ): Promise<string> {
     // Find the user in the usersRegistering array
     const user = this.usersRegistering.find((user) => user.email === email);
 
@@ -163,14 +167,27 @@ export class UserAuthService {
     }
 
     // Save the user to the database
-    await this.userRepository.createUser(
+    let createdUser = await this.userRepository.createUser(
       user.email,
       user.passwordHash,
       user.accountType,
     );
 
+    // Create related table
+    if (user.accountType == AccountType.influencer) {
+      await this.influencerRepository.createInfluencer(createdUser.id);
+    } else {
+      await this.companyRepository.createCompany(createdUser.id);
+    }
+
     // Remove the user from the usersRegistering array
     this.usersRegistering.splice(this.usersRegistering.indexOf(user), 1);
+
+    // Generate JWT
+    return await this.jwtService.signAsync({
+      id: createdUser.id,
+      account_type: user.accountType,
+    } as JwtContent);
   }
 
   /**

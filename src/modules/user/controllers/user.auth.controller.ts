@@ -44,9 +44,12 @@ export class UserAuthController {
   @ApiOperation({})
   @ApiResponse({})
   @Post('register/verify')
-  async verifyRegisterCode(@Body() dto: VerifyRegisterCodeDto): Promise<void> {
+  async verifyRegisterCode(
+    @Body() dto: VerifyRegisterCodeDto,
+  ): Promise<LoggedDto> {
     const { email, code } = dto;
-    await this.authService.verifyRegisterCode(email, code);
+    let accessToken = await this.authService.verifyRegisterCode(email, code);
+    return new LoggedDto(accessToken);
   }
 
   @ApiOperation({})

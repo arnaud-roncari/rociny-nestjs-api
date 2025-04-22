@@ -1,3 +1,5 @@
 export enum BucketType {
-  user_pictures = 'user-pictures',
+  influencer_pictures = 'influencer-pictures',
+  policies = 'policies',
+  portfolios = 'portfolios',
 }
