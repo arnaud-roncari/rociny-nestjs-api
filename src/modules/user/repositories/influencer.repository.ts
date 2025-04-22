@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PostgresqlService } from '../../postgresql/postgresql.service';
 import { InfluencerEntity } from '../entities/influencer.entity';
+import { PlatformType } from 'src/commons/enums/platform_type';
+import { SocialNetworkEntity } from '../entities/social_network.entity';
 
 @Injectable()
 export class InfluencerRepository {
@@ -140,5 +142,101 @@ export class InfluencerRepository {
         WHERE user_id = $2
       `;
     await this.postgresqlService.query(query, [themes, userId]);
+  }
+
+  /**
+   * Create a new social network for an influencer.
+   * @param influencerId - The influencer's id.
+   * @param platform - The platform name (e.g., 'twitch', 'youtube', 'instagram', 'tiktok').
+   * @param followers - The number of followers.
+   * @param url - The URL of the social network profile.
+   * @returns The created social network entity.
+   */
+  async createSocialNetwork(
+    influencerId: number,
+    platform: PlatformType,
+    followers: number,
+    url: string,
+  ): Promise<void> {
+    const query = `
+        INSERT INTO api.social_networks (influencer_id, platform, followers, url)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `;
+    await this.postgresqlService.query(query, [
+      influencerId,
+      platform,
+      followers,
+      url,
+    ]);
+  }
+
+  /**
+   * Fetch social networks by influencer id.
+   * @param influencerId - The influencer's id.
+   * @returns An array of social network entities.
+   */
+  async getSocialNetworks(
+    influencerId: number,
+  ): Promise<SocialNetworkEntity[]> {
+    const query = `
+        SELECT *
+        FROM api.social_networks
+        WHERE influencer_id = $1
+      `;
+    const result = await this.postgresqlService.query(query, [influencerId]);
+    return result.map((row) => SocialNetworkEntity.fromJson(row));
+  }
+
+  /**
+   * Delete a social network by its id.
+   * @param socialNetworkId - The social network's id.
+   */
+  async deleteSocialNetwork(socialNetworkId: string): Promise<void> {
+    const query = `
+        DELETE FROM api.social_networks
+        WHERE id = $1
+      `;
+    await this.postgresqlService.query(query, [socialNetworkId]);
+  }
+
+  /**
+   * Update the URL of a social network by its id.
+   * @param socialNetworkId - The social network's id.
+   * @param url - The new URL of the social network profile.
+   */
+  async updateSocialNetwork(
+    socialNetworkId: string,
+    url: string,
+  ): Promise<void> {
+    const query = `
+        UPDATE api.social_networks
+        SET url = $1
+        WHERE id = $2
+      `;
+    await this.postgresqlService.query(query, [url, socialNetworkId]);
+  }
+
+  /**
+   * Fetch a social network by influencer id and platform type.
+   * @param influencerId - The influencer's id.
+   * @param platform - The platform type (e.g., 'twitch', 'youtube', 'instagram', 'tiktok').
+   * @returns The social network entity, or null if not found.
+   */
+  async getSocialNetworkByType(
+    influencerId: number,
+    platform: PlatformType,
+  ): Promise<SocialNetworkEntity | null> {
+    const query = `
+        SELECT *
+        FROM api.social_networks
+        WHERE influencer_id = $1 AND platform = $2
+        LIMIT 1
+      `;
+    const result = await this.postgresqlService.query(query, [
+      influencerId,
+      platform,
+    ]);
+    return result.length > 0 ? SocialNetworkEntity.fromJson(result[0]) : null;
   }
 }
