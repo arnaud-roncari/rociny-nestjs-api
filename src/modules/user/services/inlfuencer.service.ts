@@ -6,6 +6,9 @@ import { MinioService } from 'src/modules/minio/minio.service';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import internal from 'stream';
 import { FileNotFoundException } from 'src/commons/errors/file-not-found';
+import { PlatformType } from 'src/commons/enums/platform_type';
+import { SocialNetworkEntity } from '../entities/social_network.entity';
+import { SocialNetworkExists } from 'src/commons/errors/social-network-already-exist';
 
 @Injectable()
 export class InfluencerService {
@@ -237,5 +240,98 @@ export class InfluencerService {
       userId,
       targetAudience,
     );
+  }
+
+  /**
+   * Adds a social network to the user's profile.
+   *
+   * @param userId - The ID of the user whose social network is being added.
+   * @param platform - The platform type of the social network (e.g., Instagram, Twitter).
+   * @param url - The URL of the social network profile.
+   * @throws UserNotFoundException if the user is not found.
+   */
+  async createSocialNetwork(
+    userId: string,
+    platform: PlatformType,
+    url: string,
+  ): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    let exists = await this.influencerRepository.getSocialNetworkByType(
+      influencer.id,
+      platform,
+    );
+
+    if (exists) {
+      throw new SocialNetworkExists();
+    }
+
+    await this.influencerRepository.createSocialNetwork(
+      influencer.id,
+      platform,
+      0,
+      url,
+    );
+  }
+
+  /**
+   * Retrieves the social networks of the user.
+   *
+   * @param userId - The ID of the user.
+   * @returns The list of social networks.
+   * @throws Error if the user is not found.
+   */
+  async getSocialNetworks(userId: string): Promise<SocialNetworkEntity[]> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const sn = await this.influencerRepository.getSocialNetworks(influencer.id);
+    return sn;
+  }
+
+  /**
+   * Deletes a social network from the user's profile.
+   *
+   * @param userId - The ID of the user.
+   * @param socialNetworkId - The social network id to delete.
+   * @throws Error if the user is not found or the social network does not exist.
+   */
+  async deleteSocialNetwork(
+    userId: string,
+    socialNetworkId: string,
+  ): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    await this.influencerRepository.deleteSocialNetwork(socialNetworkId);
+  }
+
+  /**
+   * Updates a social network in the user's profile.
+   *
+   * @param userId - The ID of the user.
+   * @param socialNetworkId
+   * @param url
+   * @throws Error if the user is not found or the social network does not exist.
+   */
+  async updateSocialNetwork(
+    userId: string,
+    socialNetworkId: string,
+    url: string,
+  ): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+    /// NOTE : Should check if user own this social network
+
+    await this.influencerRepository.updateSocialNetwork(socialNetworkId, url);
   }
 }
