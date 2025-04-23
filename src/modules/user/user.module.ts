@@ -4,7 +4,7 @@ import { MinioService } from '../minio/minio.service';
 import { UserRepository } from './repositories/user.repository';
 import { UserAuthService } from './services/user.auth.service';
 import { UserAuthController } from './controllers/user.auth.controller';
-import { MailModule } from '../mail/mail.module';
+import { Email } from '../mail/mail.module';
 import { InfluencerService } from './services/inlfuencer.service';
 import { InfluencerController } from './controllers/influencer.controller';
 import { InfluencerRepository } from './repositories/influencer.repository';
@@ -12,7 +12,7 @@ import { CompanyRepository } from './repositories/company.repository';
 
 
 @Module({
-  imports: [MailModule],
+  imports: [Email],
   providers: [
     PostgresqlService,
     InfluencerRepository,
