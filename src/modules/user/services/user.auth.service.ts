@@ -132,7 +132,6 @@ export class UserAuthService {
     // Send an email with the verification code
     await this.mailService.sendMail({
       to: email,
-      subject: 'Votre code de vérification Rociny',
       template: MailTemplate.VERIFICATION_CODE,
       context: {
         code: verificationCode,
@@ -210,7 +209,6 @@ export class UserAuthService {
     /// TODO : Implement email sending with the verification code.
     await this.mailService.sendMail({
       to: email,
-      subject: 'Votre code de vérification Rociny',
       template: MailTemplate.VERIFICATION_CODE,
       context: {
         code: user.verificationCode,
@@ -267,7 +265,6 @@ export class UserAuthService {
     // Send an email with the verification code
     await this.mailService.sendMail({
       to: email,
-      subject: 'Votre code de réinitialisation de mot de passe - Rociny',
       template: MailTemplate.RESET_PASSWORD,
       context: {
         code: verificationCode,
@@ -337,7 +334,6 @@ export class UserAuthService {
 
     await this.mailService.sendMail({
       to: email,
-      subject: 'Votre code de réinitialisation de mot de passe - Rociny',
       template: MailTemplate.RESET_PASSWORD,
       context: {
         code: user.verificationCode,

@@ -3,7 +3,7 @@ import { PostgresqlService } from './modules/postgresql/postgresql.service';
 import { CrashModule } from './modules/crash/dtos/crash.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from './modules/user/user.module';
-import { MailModule } from './modules/mail/mail.module';
+import { Email } from './modules/mail/mail.module';
 import { PolicyModule } from './modules/policy/policy.module';
 
 @Module({
@@ -14,7 +14,7 @@ import { PolicyModule } from './modules/policy/policy.module';
     }),
     CrashModule,
     UserModule,
-    MailModule,
+    Email,
     PolicyModule,
   ],
   controllers: [],
