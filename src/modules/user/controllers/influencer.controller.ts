@@ -27,6 +27,7 @@ import { UpdateTargetAudienceDto } from '../dtos/update-target-audience.dto';
 import { CreateSocialNetworkDto } from '../dtos/create-social-network.dto';
 import { SocialNetworkDto } from '../dtos/social-network.dto';
 import { UpdateSocialNetworkDto } from '../dtos/update-social-network.dto';
+import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -244,10 +245,10 @@ export class InfluencerController {
    */
   @ApiOperation({ summary: 'Delete a social network from user profile' })
   @UseGuards(AuthGuard)
-  @Delete('delete-social-network/:social-network-id')
+  @Delete('delete-social-network/:id')
   async deleteSocialNetwork(
     @IdFromJWT() userId: string,
-    @Param('social-network-id') socialNetworkId: string,
+    @Param('id') socialNetworkId: string,
   ): Promise<void> {
     await this.influencerService.deleteSocialNetwork(userId, socialNetworkId);
   }
@@ -268,5 +269,63 @@ export class InfluencerController {
     @Body() body: UpdateSocialNetworkDto,
   ): Promise<void> {
     await this.influencerService.updateSocialNetwork(userId, body.id, body.url);
+  }
+
+  /**
+   * Adds a new legal document for the user.
+   *
+   * @param userId - The ID of the user extracted from the JWT token.
+   * @param type - The type of the legal document to be added.
+   * @param file - The file to be uploaded as the legal document.
+   * @returns A promise that resolves when the document is successfully added.
+   */
+  @ApiOperation({ summary: 'Add a new legal document for the user' })
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Post('add-legal-document/:type')
+  async addLegalDocument(
+    @IdFromJWT() userId: string,
+    @Param('type') type: LegalDocumentType,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<void> {
+    await this.influencerService.addLegalDocument(userId, type, file);
+  }
+
+  /**
+   * Deletes a legal document of the user based on the document type.
+   *
+   * @param userId - The ID of the user extracted from the JWT token.
+   * @param type - The type of the legal document to be deleted.
+   * @returns A promise that resolves when the document is successfully deleted.
+   */
+  @ApiOperation({ summary: 'Delete a legal document for the user' })
+  @UseGuards(AuthGuard)
+  @Delete('delete-legal-document/:type')
+  async deleteLegalDocument(
+    @Param('type') type: LegalDocumentType,
+    @IdFromJWT() userId: string,
+  ): Promise<void> {
+    await this.influencerService.deleteLegalDocument(userId, type);
+  }
+
+  /**
+   * Retrieves the status of a specific legal document for the user.
+   *
+   * @param userId - The ID of the user extracted from the JWT token.
+   * @param type - The type of the legal document to check the status for.
+   * @returns The status of the legal document.
+   */
+  @ApiOperation({ summary: 'Get the status of a legal document for the user' })
+  @UseGuards(AuthGuard)
+  @Get('get-legal-document-status/:type')
+  async getLegalDocumentStatus(
+    @Param('type') type: LegalDocumentType,
+    @IdFromJWT() userId: string,
+  ): Promise<any> {
+    let status = await this.influencerService.getLegalDocumentStatus(
+      userId,
+      type,
+    );
+    return { status: status };
   }
 }
