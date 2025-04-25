@@ -9,6 +9,9 @@ import { FileNotFoundException } from 'src/commons/errors/file-not-found';
 import { PlatformType } from 'src/commons/enums/platform_type';
 import { SocialNetworkEntity } from '../entities/social_network.entity';
 import { SocialNetworkExists } from 'src/commons/errors/social-network-already-exist';
+import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
+import { LegalDocumentAlreadyExists } from 'src/commons/errors/legal-document-already-exist';
+import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
 
 @Injectable()
 export class InfluencerService {
@@ -333,5 +336,96 @@ export class InfluencerService {
     /// NOTE : Should check if user own this social network
 
     await this.influencerRepository.updateSocialNetwork(socialNetworkId, url);
+  }
+
+  async addLegalDocument(
+    userId: string,
+    type: LegalDocumentType,
+    file: Express.Multer.File,
+  ): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const exists = await this.influencerRepository.getLegalDocumentByType(
+      influencer.id,
+      type,
+    );
+    if (exists) {
+      throw new LegalDocumentAlreadyExists();
+    }
+
+    let document = await this.minioService.uploadFile(file, BucketType.legal);
+    await this.influencerRepository.addLegalDocument(
+      influencer.id,
+      type,
+      LegalDocumentStatus.pending,
+      document,
+    );
+  }
+
+  /**
+   * Retrieves the status of a legal document for a specific influencer based on the document type.
+   *
+   * @param userId - The ID of the influencer whose legal document status is being retrieved.
+   * @param type - The type of the legal document whose status is being checked (e.g., contract, agreement, etc.).
+   *
+   * @returns The status of the legal document. If no document exists for the given type,
+   *          the status will be `LegalDocumentStatus.missing`.
+   *
+   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   */
+  async getLegalDocumentStatus(
+    userId: string,
+    type: LegalDocumentType,
+  ): Promise<LegalDocumentStatus> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const document = await this.influencerRepository.getLegalDocumentByType(
+      influencer.id,
+      type,
+    );
+
+    if (!document) {
+      return LegalDocumentStatus.missing;
+    }
+
+    return document.status;
+  }
+
+  /**
+   * Deletes a legal document of a specific influencer based on the document ID and type.
+   *
+   * @param userId - The ID of the user (influencer) whose legal document is to be deleted.
+   * @param type - The type of the legal document to be deleted (e.g., contract, agreement, etc.).
+   *
+   * @returns A promise that resolves when the document is deleted.
+   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the influencer.
+   */
+  async deleteLegalDocument(
+    userId: string,
+    type: LegalDocumentType,
+  ): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const document = await this.influencerRepository.getLegalDocumentByType(
+      influencer.id,
+      type,
+    );
+
+    if (!document) {
+      // Exception missing.
+      return;
+    }
+    await this.minioService.removeFile(BucketType.legal, document.document);
+    await this.influencerRepository.deleteLegalDocument(document.id);
   }
 }

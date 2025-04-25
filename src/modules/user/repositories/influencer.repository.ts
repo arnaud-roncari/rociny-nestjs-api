@@ -3,6 +3,9 @@ import { PostgresqlService } from '../../postgresql/postgresql.service';
 import { InfluencerEntity } from '../entities/influencer.entity';
 import { PlatformType } from 'src/commons/enums/platform_type';
 import { SocialNetworkEntity } from '../entities/social_network.entity';
+import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
+import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
+import { LegalDocumentEntity } from '../entities/legal_document.entity';
 
 @Injectable()
 export class InfluencerRepository {
@@ -238,5 +241,76 @@ export class InfluencerRepository {
       platform,
     ]);
     return result.length > 0 ? SocialNetworkEntity.fromJson(result[0]) : null;
+  }
+
+  /**
+   * Adds a new legal document to the database for a specific influencer.
+   *
+   * @param influencerId - The ID of the influencer for whom the legal document is being added.
+   * @param type - The type of the legal document (e.g., contract, agreement, etc.).
+   * @param status - The current status of the legal document (e.g., active, pending, etc.).
+   * @param document - The document's content or a reference to the document.
+   *
+   * @returns A `LegalDocumentEntity` object if the document is successfully added, otherwise `null`.
+   */
+  async addLegalDocument(
+    influencerId: number,
+    type: LegalDocumentType,
+    status: LegalDocumentStatus,
+    document: string,
+  ): Promise<LegalDocumentEntity | null> {
+    const query = `
+    INSERT INTO api.legal_documents (influencer_id, type, status, document)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *
+  `;
+    const result = await this.postgresqlService.query(query, [
+      influencerId,
+      type,
+      status,
+      document,
+    ]);
+    return result.length > 0 ? LegalDocumentEntity.fromJson(result[0]) : null;
+  }
+
+  /**
+   * Deletes a legal document from the database based on its ID.
+   *
+   * @param id - The unique identifier of the legal document to be deleted.
+   *
+   * @returns A `Promise` that resolves when the operation completes. The result is void,
+   *          as the method does not return any value. The absence of errors indicates success.
+   */
+  async deleteLegalDocument(id: string): Promise<void> {
+    const query = `
+    DELETE FROM api.legal_documents 
+    WHERE id = $1
+    RETURNING id
+  `;
+    await this.postgresqlService.query(query, [id]);
+  }
+
+  /**
+   * Retrieves the legal document for a specific influencer based on the document type.
+   *
+   * @param influencerId - The ID of the influencer whose legal document is being retrieved.
+   * @param type - The type of the legal document to be retrieved (e.g., contract, agreement, etc.).
+   *
+   * @returns A `LegalDocumentEntity` object if the document is found, otherwise `null`.
+   */
+  async getLegalDocumentByType(
+    influencerId: number,
+    type: LegalDocumentType,
+  ): Promise<LegalDocumentEntity | null> {
+    const query = `
+    SELECT * FROM api.legal_documents
+    WHERE influencer_id = $1 AND type = $2
+    LIMIT 1
+  `;
+    const result = await this.postgresqlService.query(query, [
+      influencerId,
+      type,
+    ]);
+    return result.length > 0 ? LegalDocumentEntity.fromJson(result[0]) : null;
   }
 }
