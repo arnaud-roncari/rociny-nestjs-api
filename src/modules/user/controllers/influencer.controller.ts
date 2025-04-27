@@ -12,7 +12,7 @@ import {
   Post,
   Delete,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ProfilePictureUpdatedDto } from '../dtos/profile-picture-updated.dto';
 import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
@@ -85,7 +85,7 @@ export class InfluencerController {
     @UploadedFiles() files: Express.Multer.File[],
     @IdFromJWT() userId: string,
   ): Promise<PortfolioUpdatedDto> {
-    let newPortfolio = await this.influencerService.updateAllPortfolio(
+    const newPortfolio = await this.influencerService.updateAllPortfolio(
       userId,
       files,
     );
@@ -232,7 +232,7 @@ export class InfluencerController {
   async getSocialNetworks(
     @IdFromJWT() userId: string,
   ): Promise<SocialNetworkDto[]> {
-    let sn = await this.influencerService.getSocialNetworks(userId);
+    const sn = await this.influencerService.getSocialNetworks(userId);
     return SocialNetworkDto.fromEntities(sn);
   }
 
@@ -322,10 +322,29 @@ export class InfluencerController {
     @Param('type') type: LegalDocumentType,
     @IdFromJWT() userId: string,
   ): Promise<any> {
-    let status = await this.influencerService.getLegalDocumentStatus(
+    const status = await this.influencerService.getLegalDocumentStatus(
       userId,
       type,
     );
     return { status: status };
+  }
+
+  /**
+   * Retrieves the account link for the user to complete their Stripe onboarding.
+   *
+   * @param userId - The ID of the user extracted from the JWT token.
+   * @returns The URL of the account link for Stripe onboarding.
+   */
+  @ApiOperation({
+    summary: 'Get the Stripe account link for the user to complete onboarding',
+  })
+  @UseGuards(AuthGuard)
+  @Get('stripe/account-link')
+  async getStripeAccountLink(
+    @IdFromJWT() userId: string,
+  ): Promise<{ url: string }> {
+    const url = await this.influencerService.getStripeAccountLink(userId);
+
+    return { url: url };
   }
 }

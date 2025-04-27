@@ -6,6 +6,7 @@ export class InfluencerEntity {
   name: string | null;
   department: string | null;
   description: string | null;
+  stripeAccountId: string;
   themes: string[];
   targetAudience: string[];
   createdAt: Date;
@@ -25,6 +26,7 @@ export class InfluencerEntity {
       profilePicture: json.profile_picture,
       portfolio: json.portfolio || [],
       name: json.name,
+      stripeAccountId: json.stripe_account_id,
       department: json.department,
       description: json.description,
       themes: json.themes || [],

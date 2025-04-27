@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, StreamableFile } from '@nestjs/common';
+import { Controller, Get, StreamableFile } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MinioService } from '../minio/minio.service';
 import { BucketType } from 'src/commons/enums/bucket_type';

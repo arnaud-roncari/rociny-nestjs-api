@@ -25,6 +25,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_SCHEME=${MINIO_SCHEME}
       - MINIO_PORT=${MINIO_PORT}
+      - STRIPE_SECRET=${STRIPE_SECRET}
     depends_on:
       - rociny-postgres
       - rociny-minio

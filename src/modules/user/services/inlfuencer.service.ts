@@ -12,12 +12,14 @@ import { SocialNetworkExists } from 'src/commons/errors/social-network-already-e
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { LegalDocumentAlreadyExists } from 'src/commons/errors/legal-document-already-exist';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
+import { StripeService } from 'src/modules/stripe/stripe.service';
 
 @Injectable()
 export class InfluencerService {
   constructor(
     private readonly influencerRepository: InfluencerRepository,
     private readonly minioService: MinioService,
+    private readonly stripeService: StripeService,
   ) {}
 
   /**
@@ -41,10 +43,10 @@ export class InfluencerService {
     }
 
     // Keep reference to previous profile pictore, to be deleted later
-    let oldProfilePicture = user.profilePicture;
+    const oldProfilePicture = user.profilePicture;
 
     // Upload new profile picture
-    let newProfilePicture = await this.minioService.uploadFile(
+    const newProfilePicture = await this.minioService.uploadFile(
       file,
       BucketType.influencer_pictures,
     );
@@ -263,7 +265,7 @@ export class InfluencerService {
       throw new UserNotFoundException();
     }
 
-    let exists = await this.influencerRepository.getSocialNetworkByType(
+    const exists = await this.influencerRepository.getSocialNetworkByType(
       influencer.id,
       platform,
     );
@@ -356,7 +358,7 @@ export class InfluencerService {
       throw new LegalDocumentAlreadyExists();
     }
 
-    let document = await this.minioService.uploadFile(file, BucketType.legal);
+    const document = await this.minioService.uploadFile(file, BucketType.legal);
     await this.influencerRepository.addLegalDocument(
       influencer.id,
       type,
@@ -427,5 +429,26 @@ export class InfluencerService {
     }
     await this.minioService.removeFile(BucketType.legal, document.document);
     await this.influencerRepository.deleteLegalDocument(document.id);
+  }
+
+  /**
+   * Retrieves the account link for a specific influencer to complete their Stripe onboarding.
+   *
+   * @param userId - The ID of the user (influencer) whose Stripe account link is to be retrieved.
+   *
+   * @returns A promise that resolves with the URL of the Stripe account link.
+   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   */
+  async getStripeAccountLink(userId: string): Promise<string> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const url = await this.stripeService.createAccountLink(
+      influencer.stripeAccountId,
+    );
+
+    return url;
   }
 }

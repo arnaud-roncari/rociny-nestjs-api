@@ -14,6 +14,7 @@ import { UserForgettingPasswordEntity } from '../entities/user_forgetting_passwo
 import { UserAlreadyResetingPassword } from 'src/commons/errors/user-already-reseting-password';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { CompanyRepository } from '../repositories/company.repository';
+import { StripeService } from 'src/modules/stripe/stripe.service';
 
 @Injectable()
 export class UserAuthService {
@@ -38,6 +39,7 @@ export class UserAuthService {
     private readonly jwtService: JwtService,
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
+    private readonly stripeService: StripeService,
   ) {}
 
   /**
@@ -103,7 +105,7 @@ export class UserAuthService {
     }
 
     // Add the user to the array of users pending validation (hashed password, generated code).
-    let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
+    const verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
     console.log(`Verification code for ${email} is ${verificationCode}.`); // Remove after implementing email sending
     this.usersRegistering.push(
       new UserRegisteringEntity({
@@ -158,7 +160,7 @@ export class UserAuthService {
     }
 
     // Save the user to the database
-    let createdUser = await this.userRepository.createUser(
+    const createdUser = await this.userRepository.createUser(
       user.email,
       user.passwordHash,
       user.accountType,
@@ -166,7 +168,13 @@ export class UserAuthService {
 
     // Create related table
     if (user.accountType == AccountType.influencer) {
-      await this.influencerRepository.createInfluencer(createdUser.id);
+      const stripeAccount = await this.stripeService.createAccount(
+        createdUser.email,
+      );
+      await this.influencerRepository.createInfluencer(
+        createdUser.id,
+        stripeAccount.id,
+      );
     } else {
       await this.companyRepository.createCompany(createdUser.id);
     }
@@ -226,7 +234,7 @@ export class UserAuthService {
     }
 
     // Add the user to the array of users pending validation.
-    let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
+    const verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
     console.log(`Verification code for ${email} is ${verificationCode}.`); // Remove after implementing email sending
     this.usersForgettingPassword.push(
       new UserForgettingPasswordEntity({

@@ -8,6 +8,7 @@ import { InfluencerService } from './services/inlfuencer.service';
 import { InfluencerController } from './controllers/influencer.controller';
 import { InfluencerRepository } from './repositories/influencer.repository';
 import { CompanyRepository } from './repositories/company.repository';
+import { StripeService } from '../stripe/stripe.service';
 
 @Module({
   providers: [
@@ -18,6 +19,7 @@ import { CompanyRepository } from './repositories/company.repository';
     UserRepository,
     UserAuthService,
     InfluencerService,
+    StripeService,
   ],
   controllers: [UserAuthController, InfluencerController],
 })

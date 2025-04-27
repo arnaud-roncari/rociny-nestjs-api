@@ -10,5 +10,8 @@ CREATE TABLE api.influencers (
     themes TEXT[] DEFAULT '{}',
     target_audience TEXT[] DEFAULT '{}',
     --
+    stripe_account_id TEXT NOT NULL,
+    --
+
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

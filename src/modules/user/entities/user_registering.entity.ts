@@ -4,7 +4,7 @@ export class UserRegisteringEntity {
   email: string;
   passwordHash: string;
   accountType: AccountType;
-  verificationCode: Number;
+  verificationCode: number;
 
   constructor(parameters: UserRegisteringEntity) {
     Object.assign(this, parameters);

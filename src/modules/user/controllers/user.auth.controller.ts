@@ -48,7 +48,7 @@ export class UserAuthController {
     @Body() dto: VerifyRegisterCodeDto,
   ): Promise<LoggedDto> {
     const { email, code } = dto;
-    let accessToken = await this.authService.verifyRegisterCode(email, code);
+    const accessToken = await this.authService.verifyRegisterCode(email, code);
     return new LoggedDto(accessToken);
   }
 
