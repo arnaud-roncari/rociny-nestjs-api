@@ -34,4 +34,31 @@ export class StripeService {
     });
     return accountLink.url;
   }
+
+  async createCustomer(
+    email: string,
+  ): Promise<Stripe.Response<Stripe.Customer>> {
+    const customer = await StripeService.stripe.customers.create({
+      email,
+    });
+
+    return customer;
+  }
+
+  async createSetupIntent(
+    customerId: string,
+  ): Promise<Stripe.Response<Stripe.SetupIntent>> {
+    const setupIntent = await StripeService.stripe.setupIntents.create({
+      customer: customerId,
+    });
+
+    return setupIntent;
+  }
+
+  async createEphemeralKey(customerId: string): Promise<Stripe.EphemeralKey> {
+    return await StripeService.stripe.ephemeralKeys.create(
+      { customer: customerId },
+      { apiVersion: '2025-03-31.basil' },
+    );
+  }
 }

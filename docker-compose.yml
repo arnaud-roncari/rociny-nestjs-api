@@ -26,6 +26,7 @@ services:
       - MINIO_SCHEME=${MINIO_SCHEME}
       - MINIO_PORT=${MINIO_PORT}
       - STRIPE_SECRET=${STRIPE_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     depends_on:
       - rociny-postgres
       - rociny-minio
@@ -71,7 +72,7 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_SCHEME=${MINIO_SCHEME}
-      - MINIO_DEFAULT_BUCKETS=influencer-pictures,policies,portfolios,legal
+      - MINIO_DEFAULT_BUCKETS=influencer-pictures,policies,portfolios,legal,company-pictures
     volumes:
       - minio_data:/data
 
