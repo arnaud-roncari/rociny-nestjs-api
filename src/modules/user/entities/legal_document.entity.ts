@@ -3,7 +3,8 @@ import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 
 export class LegalDocumentEntity {
   id: string;
-  influencerId: string;
+  influencerId: string | null;
+  companyId: string | null;
   status: LegalDocumentStatus;
   type: LegalDocumentType;
   document: string;
@@ -21,6 +22,7 @@ export class LegalDocumentEntity {
     return new LegalDocumentEntity({
       id: json.id,
       influencerId: json.influencer_id,
+      companyId: json.company_id,
       status: json.status,
       type: json.type,
       document: json.document,

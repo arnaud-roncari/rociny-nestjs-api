@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PostgresqlService } from '../../postgresql/postgresql.service';
 import { UserEntity } from '../entities/user.entity';
+import { OAuthUserEntity } from '../entities/oauth_user.entity';
+import { AccountType } from 'src/commons/enums/account_type';
 
 @Injectable()
 export class UserRepository {
@@ -39,6 +41,23 @@ export class UserRepository {
   }
 
   /**
+   * Update the account type of a user.
+   * @param userId - The ID of the user to update.
+   * @param accountType - The new account type to assign (e.g., influencer or company).
+   */
+  async updateUserAccountType(
+    userId: number,
+    accountType: AccountType,
+  ): Promise<void> {
+    const query = `
+    UPDATE api.users
+    SET account_type = $1
+    WHERE id = $2
+  `;
+    await this.postgresqlService.query(query, [accountType, userId]);
+  }
+
+  /**
    * Create a new user.
    * @param email - The user's email.
    * @param passwordHash - The hashed password of the user.
@@ -47,7 +66,7 @@ export class UserRepository {
    */
   async createUser(
     email: string,
-    passwordHash: string,
+    passwordHash: string | null,
     accountType: string,
   ): Promise<UserEntity> {
     const query = `
@@ -77,5 +96,59 @@ export class UserRepository {
     `;
     const values = [newPasswordHash, email];
     await this.postgresqlService.query(query, values);
+  }
+
+  /**
+   * Retrieves an OAuth user based on the provider and provider user ID.
+   *
+   * This function performs an SQL query to fetch an OAuth user from the `oauth_users` table
+   * based on the provider (e.g., Google, Apple) and the provider-specific user ID.
+   *
+   * @param provider The name of the OAuth provider (e.g., 'google', 'apple').
+   * @param providerUserId The unique ID of the user on the provider (e.g., the Google or Apple user ID).
+   * @returns A promise that resolves to the `OAuthUserEntity` corresponding to the provided provider and user ID,
+   *          or throws an error if the user is not found.
+   */
+  async getOAuthUser(
+    provider: string,
+    providerUserId: string,
+  ): Promise<OAuthUserEntity | null> {
+    const query = `
+    SELECT * 
+    FROM api.oauth_users
+    WHERE provider = $1 AND provider_user_id = $2
+    LIMIT 1
+  `;
+    const values = [provider, providerUserId];
+    const r = await this.postgresqlService.query(query, values);
+
+    return OAuthUserEntity.fromJson(r[0]);
+  }
+
+  /**
+   * Creates a new OAuth user in the database.
+   *
+   * This function inserts a new OAuth user into the `oauth_users` table with the provided
+   * details (userId, provider, providerUserId).
+   *
+   * @param userId The ID of the user associated with this OAuth user (foreign key reference to the `users` table).
+   * @param provider The name of the OAuth provider (e.g., 'google', 'apple').
+   * @param providerUserId The unique ID of the user on the provider (e.g., the Google or Apple user ID).
+   * @returns A promise that resolves to the `OAuthUserEntity` created with the generated ID after insertion.
+   */
+  async createOAuthUser(
+    userId: number,
+    provider: string,
+    providerUserId: string,
+  ): Promise<OAuthUserEntity> {
+    const query = `
+    INSERT INTO api.oauth_users (user_id, provider, provider_user_id)
+    VALUES ($1, $2, $3)
+    RETURNING *;
+  `;
+    const values = [userId, provider, providerUserId];
+    const r = await this.postgresqlService.query(query, values);
+
+    return OAuthUserEntity.fromJson(r[0]);
   }
 }

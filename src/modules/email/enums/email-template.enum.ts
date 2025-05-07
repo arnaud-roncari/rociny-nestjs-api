@@ -1,4 +1,4 @@
-export enum MailTemplate {
+export enum EmailTemplate {
   WELCOME = 'welcome',
   RESET_PASSWORD = 'reset-password',
   VERIFICATION_CODE = 'verification-code',

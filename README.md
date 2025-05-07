@@ -57,6 +57,19 @@ JWT_SECRET=mysecret
 MINIO_ROOT_USER=admin
 MINIO_ROOT_PASSWORD=yourpassword
 MINIO_SCHEME=http
+MINIO_PORT=9000
+
+# STRIPE
+STRIPE_SECRET=X
+
+# GOOGLE
+GOOGLE_CLIENT_ID=X
+
+# GMAIL
+GMAIL_USER=X
+GMAIL_CLIENT_ID=X
+GMAIL_CLIENT_SECRET=X
+GMAIL_REFRESH_TOKEN=X
 ```
 
 Replace youruser, yourpassword, and yourdbname with your desired PostgreSQL credentials.

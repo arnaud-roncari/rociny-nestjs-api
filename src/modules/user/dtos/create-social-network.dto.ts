@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { IsEnum } from 'class-validator';
 import { PlatformType } from 'src/commons/enums/platform_type';
 

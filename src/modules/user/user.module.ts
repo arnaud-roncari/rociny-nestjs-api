@@ -4,15 +4,16 @@ import { MinioService } from '../minio/minio.service';
 import { UserRepository } from './repositories/user.repository';
 import { UserAuthService } from './services/user.auth.service';
 import { UserAuthController } from './controllers/user.auth.controller';
-import { Email } from '../mail/mail.module';
 import { InfluencerService } from './services/inlfuencer.service';
 import { InfluencerController } from './controllers/influencer.controller';
 import { InfluencerRepository } from './repositories/influencer.repository';
 import { CompanyRepository } from './repositories/company.repository';
-
+import { StripeService } from '../stripe/stripe.service';
+import { CompanyService } from './services/company.service';
+import { CompanyController } from './controllers/company.controller';
+import { EmailService } from '../email/email.service';
 
 @Module({
-  imports: [Email],
   providers: [
     PostgresqlService,
     InfluencerRepository,
@@ -21,7 +22,11 @@ import { CompanyRepository } from './repositories/company.repository';
     UserRepository,
     UserAuthService,
     InfluencerService,
+    StripeService,
+    CompanyRepository,
+    CompanyService,
+    EmailService,
   ],
-  controllers: [UserAuthController, InfluencerController],
+  controllers: [UserAuthController, InfluencerController, CompanyController],
 })
 export class UserModule {}

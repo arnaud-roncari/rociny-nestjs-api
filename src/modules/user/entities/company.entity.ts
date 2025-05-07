@@ -1,6 +1,11 @@
 export class CompanyEntity {
   id: number;
   userId: number;
+  profilePicture: string | null;
+  name: string | null;
+  department: string | null;
+  description: string | null;
+  stripeCustomerId: string;
   createdAt: Date;
 
   constructor(parameters: CompanyEntity) {
@@ -15,6 +20,11 @@ export class CompanyEntity {
     return new CompanyEntity({
       id: json.id,
       userId: json.user_id,
+      profilePicture: json.profile_picture,
+      name: json.name,
+      department: json.department,
+      description: json.description,
+      stripeCustomerId: json.stripe_customer_id,
       createdAt: json.created_at ? new Date(json.created_at) : new Date(),
     });
   }

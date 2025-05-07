@@ -1,6 +1,6 @@
 export class UserForgettingPasswordEntity {
   email: string;
-  verificationCode: Number;
+  verificationCode: number;
 
   constructor(parameters: UserForgettingPasswordEntity) {
     Object.assign(this, parameters);

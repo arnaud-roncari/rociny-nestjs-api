@@ -50,13 +50,19 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @returns The created influencer as an entity.
    */
-  async createInfluencer(userId: number): Promise<InfluencerEntity> {
+  async createInfluencer(
+    userId: number,
+    stripeAccountId: string,
+  ): Promise<InfluencerEntity> {
     const query = `
-        INSERT INTO api.influencers (user_id)
-        VALUES ($1)
+        INSERT INTO api.influencers (user_id, stripe_account_id)
+        VALUES ($1, $2)
         RETURNING *
       `;
-    const result = await this.postgresqlService.query(query, [userId]);
+    const result = await this.postgresqlService.query(query, [
+      userId,
+      stripeAccountId,
+    ]);
     return InfluencerEntity.fromJson(result[0]);
   }
 

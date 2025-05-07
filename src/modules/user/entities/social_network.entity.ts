@@ -2,7 +2,8 @@ import { PlatformType } from 'src/commons/enums/platform_type';
 
 export class SocialNetworkEntity {
   id: string;
-  influencerId: string;
+  influencerId: string | null;
+  companyId: string | null;
   platform: PlatformType;
   followers: number;
   url: string;
@@ -20,6 +21,7 @@ export class SocialNetworkEntity {
     return new SocialNetworkEntity({
       id: json.id,
       influencerId: json.influencer_id,
+      companyId: json.company_id,
       platform: json.platform,
       followers: json.followers,
       url: json.url,

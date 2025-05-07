@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { LoggedDto } from '../dtos/logged.dto';
@@ -9,6 +9,7 @@ import { ResentRegisterVerificationCodeDto } from '../dtos/resent-register-verif
 import { ForgotPasswordDto } from '../dtos/forgot-password.dto';
 import { VerifyForgotPasswordDto } from '../dtos/verify-forgot-password.dto';
 import { ResentForgotPasswordVerificationCodeDto } from '../dtos/resent-forgot-password-verification-code';
+import { CompleteOAuthGoogleUserDto } from '../dtos/complete-oauth-google-user.dto';
 
 @Controller('user/auth')
 export class UserAuthController {
@@ -48,7 +49,7 @@ export class UserAuthController {
     @Body() dto: VerifyRegisterCodeDto,
   ): Promise<LoggedDto> {
     const { email, code } = dto;
-    let accessToken = await this.authService.verifyRegisterCode(email, code);
+    const accessToken = await this.authService.verifyRegisterCode(email, code);
     return new LoggedDto(accessToken);
   }
 
@@ -88,5 +89,26 @@ export class UserAuthController {
   ): Promise<void> {
     const { email } = dto;
     await this.authService.resentForgotPasswordVerificationCode(email);
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @Get('login-with-google/:id_token')
+  async loginWithGoogle(@Param('id_token') idToken: string): Promise<any> {
+    const map = await this.authService.loginWithGoogle(idToken);
+    return map;
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @Post('complete-oauth-google-user')
+  async completeOAuthGoogleUser(
+    @Body() dto: CompleteOAuthGoogleUserDto,
+  ): Promise<any> {
+    const jwt = await this.authService.completeOAuthGoogleUser(
+      dto.provider_user_id,
+      dto.account_type,
+    );
+    return { access_token: jwt };
   }
 }
