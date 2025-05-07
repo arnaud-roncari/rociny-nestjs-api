@@ -12,8 +12,8 @@ import { UserAlreadyExists } from 'src/commons/errors/user-already-exist';
 import { InvalidCodeException } from 'src/commons/errors/invalid-code';
 import { UserForgettingPasswordEntity } from '../entities/user_forgetting_password.entity';
 import { UserAlreadyResetingPassword } from 'src/commons/errors/user-already-reseting-password';
-import { MailService } from '../../mail/services/mail.service';
-import { MailTemplate } from '../../mail/enums/mail-template.enum';
+import { EmailService } from '../../email/email.service';
+import { EmailTemplate } from '../../email/enums/email-template.enum';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { StripeService } from 'src/modules/stripe/stripe.service';
@@ -57,7 +57,7 @@ export class UserAuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
-    private readonly mailService: MailService,
+    private readonly emailService: EmailService,
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly stripeService: StripeService,
@@ -154,12 +154,8 @@ export class UserAuthService {
     );
 
     // Send an email with the verification code
-    await this.mailService.sendMail({
-      to: email,
-      template: MailTemplate.VERIFICATION_CODE,
-      context: {
-        code: verificationCode,
-      },
+    await this.emailService.sendEmail(email, EmailTemplate.VERIFICATION_CODE, {
+      code: verificationCode,
     });
   }
 
@@ -267,12 +263,8 @@ export class UserAuthService {
     }
 
     /// TODO : Implement email sending with the verification code.
-    await this.mailService.sendMail({
-      to: email,
-      template: MailTemplate.VERIFICATION_CODE,
-      context: {
-        code: user.verificationCode,
-      },
+    await this.emailService.sendEmail(email, EmailTemplate.VERIFICATION_CODE, {
+      code: user.verificationCode,
     });
   }
 
@@ -323,12 +315,8 @@ export class UserAuthService {
     );
 
     // Send an email with the verification code
-    await this.mailService.sendMail({
-      to: email,
-      template: MailTemplate.RESET_PASSWORD,
-      context: {
-        code: verificationCode,
-      },
+    await this.emailService.sendEmail(email, EmailTemplate.RESET_PASSWORD, {
+      code: verificationCode,
     });
   }
 
@@ -392,12 +380,8 @@ export class UserAuthService {
       throw new UserNotFoundException();
     }
 
-    await this.mailService.sendMail({
-      to: email,
-      template: MailTemplate.RESET_PASSWORD,
-      context: {
-        code: user.verificationCode,
-      },
+    await this.emailService.sendEmail(email, EmailTemplate.RESET_PASSWORD, {
+      code: user.verificationCode,
     });
   }
 

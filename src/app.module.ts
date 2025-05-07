@@ -3,7 +3,6 @@ import { PostgresqlService } from './modules/postgresql/postgresql.service';
 import { CrashModule } from './modules/crash/dtos/crash.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from './modules/user/user.module';
-import { Email } from './modules/mail/mail.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { StripeService } from './modules/stripe/stripe.service';
 import { MinioService } from './modules/minio/minio.service';
@@ -16,7 +15,6 @@ import { MinioService } from './modules/minio/minio.service';
     }),
     CrashModule,
     UserModule,
-    Email,
     PolicyModule,
   ],
   controllers: [],
