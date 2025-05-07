@@ -79,6 +79,12 @@ export class UserAuthService {
     if (!user) {
       throw new UserNotFoundException();
     }
+
+    // If user created from OAuth
+    if (!user.passwordHash) {
+      throw new InvalidPasswordException();
+    }
+
     // Verify password (throw error if not matching)
     const match = await argon2.verify(user.passwordHash, password);
     if (!match) {
