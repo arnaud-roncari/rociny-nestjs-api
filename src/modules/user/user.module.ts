@@ -9,6 +9,9 @@ import { InfluencerService } from './services/inlfuencer.service';
 import { InfluencerController } from './controllers/influencer.controller';
 import { InfluencerRepository } from './repositories/influencer.repository';
 import { CompanyRepository } from './repositories/company.repository';
+import { StripeService } from '../stripe/stripe.service';
+import { CompanyService } from './services/company.service';
+import { CompanyController } from './controllers/company.controller';
 
 
 @Module({
@@ -21,7 +24,10 @@ import { CompanyRepository } from './repositories/company.repository';
     UserRepository,
     UserAuthService,
     InfluencerService,
+    StripeService,
+    CompanyRepository,
+    CompanyService,
   ],
-  controllers: [UserAuthController, InfluencerController],
+  controllers: [UserAuthController, InfluencerController, CompanyController],
 })
 export class UserModule {}

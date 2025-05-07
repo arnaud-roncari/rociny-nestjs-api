@@ -7,31 +7,27 @@ import {
   StreamableFile,
   Get,
   Param,
-  UploadedFiles,
   Body,
   Post,
   Delete,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfilePictureUpdatedDto } from '../dtos/profile-picture-updated.dto';
 import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
 import { AuthGuard } from 'src/commons/guards/auth.guard';
-import { InfluencerService } from '../services/inlfuencer.service';
-import { PortfolioUpdatedDto } from '../dtos/portfolio-updated.dto';
 import { UpdateNameDto } from '../dtos/update-name.dto';
 import { UpdateDescriptionDto } from '../dtos/update-description.dto';
 import { UpdateDepartmentDto } from '../dtos/update-department.dto';
-import { UpdateThemesDto } from '../dtos/update-themes.dto';
-import { UpdateTargetAudienceDto } from '../dtos/update-target-audience.dto';
 import { CreateSocialNetworkDto } from '../dtos/create-social-network.dto';
 import { SocialNetworkDto } from '../dtos/social-network.dto';
 import { UpdateSocialNetworkDto } from '../dtos/update-social-network.dto';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
+import { CompanyService } from '../services/company.service';
 
-@Controller('influencer')
-export class InfluencerController {
-  constructor(private readonly influencerService: InfluencerService) {}
+@Controller('company')
+export class CompanyController {
+  constructor(private readonly companyService: CompanyService) {}
 
   /**
    * Updates the profile picture of the currently authenticated user.
@@ -50,7 +46,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
   ): Promise<ProfilePictureUpdatedDto> {
     const newProfilePicture: string =
-      await this.influencerService.updateProfilePicture(userId, file);
+      await this.companyService.updateProfilePicture(userId, file);
     return new ProfilePictureUpdatedDto(newProfilePicture);
   }
 
@@ -66,47 +62,7 @@ export class InfluencerController {
   async getProfilePicture(
     @IdFromJWT() userId: string,
   ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getProfilePicture(userId);
-    return new StreamableFile(stream);
-  }
-
-  /**
-   * Updates the entire portfolio of the currently authenticated user.
-   *
-   * @param files - The uploaded files representing the new portfolio.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the portfolio is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user portfolio' })
-  @UseInterceptors(FilesInterceptor('files'))
-  @UseGuards(AuthGuard)
-  @Put('update-all-portfolio')
-  async updateAllPortfolio(
-    @UploadedFiles() files: Express.Multer.File[],
-    @IdFromJWT() userId: string,
-  ): Promise<PortfolioUpdatedDto> {
-    const newPortfolio = await this.influencerService.updateAllPortfolio(
-      userId,
-      files,
-    );
-    return new PortfolioUpdatedDto(newPortfolio);
-  }
-
-  /**
-   * Retrieves a specific portfolio file of the currently authenticated user.
-   *
-   * @param name - The name of the portfolio file to retrieve.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A stream of the requested portfolio file.
-   */
-  @ApiOperation({ summary: 'Get specific portfolio file' })
-  @UseGuards(AuthGuard)
-  @Get('get-portfolio/:name')
-  async getPortfolio(
-    @IdFromJWT() userId: string,
-    @Param('name') name: string,
-  ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getPortfolio(userId, name);
+    const stream = await this.companyService.getProfilePicture(userId);
     return new StreamableFile(stream);
   }
 
@@ -124,7 +80,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Body() body: UpdateNameDto,
   ): Promise<void> {
-    await this.influencerService.updateName(userId, body.name);
+    await this.companyService.updateName(userId, body.name);
   }
 
   /**
@@ -141,7 +97,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Body() body: UpdateDescriptionDto,
   ): Promise<void> {
-    await this.influencerService.updateDescription(userId, body.description);
+    await this.companyService.updateDescription(userId, body.description);
   }
 
   /**
@@ -158,45 +114,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Body() body: UpdateDepartmentDto,
   ): Promise<void> {
-    await this.influencerService.updateDepartment(userId, body.department);
-  }
-
-  /**
-   * Updates the themes of the currently authenticated user.
-   *
-   * @param themes - The new themes to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the themes are successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user themes' })
-  @UseGuards(AuthGuard)
-  @Put('update-themes')
-  async updateThemes(
-    @IdFromJWT() userId: string,
-    @Body() body: UpdateThemesDto,
-  ): Promise<void> {
-    await this.influencerService.updateThemes(userId, body.themes);
-  }
-
-  /**
-   * Updates the target audience of the currently authenticated user.
-   *
-   * @param targetAudience - The new target audience to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the target audience is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user target audience' })
-  @UseGuards(AuthGuard)
-  @Put('update-target-audience')
-  async updateTargetAudience(
-    @Body() body: UpdateTargetAudienceDto,
-
-    @IdFromJWT() userId: string,
-  ): Promise<void> {
-    await this.influencerService.updateTargetAudience(
-      userId,
-      body.target_audience,
-    );
+    await this.companyService.updateDepartment(userId, body.department);
   }
 
   /**
@@ -213,7 +131,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Body() body: CreateSocialNetworkDto,
   ): Promise<void> {
-    await this.influencerService.createSocialNetwork(
+    await this.companyService.createSocialNetwork(
       userId,
       body.platform,
       body.url,
@@ -232,7 +150,7 @@ export class InfluencerController {
   async getSocialNetworks(
     @IdFromJWT() userId: string,
   ): Promise<SocialNetworkDto[]> {
-    const sn = await this.influencerService.getSocialNetworks(userId);
+    const sn = await this.companyService.getSocialNetworks(userId);
     return SocialNetworkDto.fromEntities(sn);
   }
 
@@ -250,7 +168,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Param('id') socialNetworkId: string,
   ): Promise<void> {
-    await this.influencerService.deleteSocialNetwork(userId, socialNetworkId);
+    await this.companyService.deleteSocialNetwork(userId, socialNetworkId);
   }
 
   /**
@@ -268,7 +186,7 @@ export class InfluencerController {
     @IdFromJWT() userId: string,
     @Body() body: UpdateSocialNetworkDto,
   ): Promise<void> {
-    await this.influencerService.updateSocialNetwork(userId, body.id, body.url);
+    await this.companyService.updateSocialNetwork(userId, body.id, body.url);
   }
 
   /**
@@ -288,7 +206,7 @@ export class InfluencerController {
     @Param('type') type: LegalDocumentType,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<void> {
-    await this.influencerService.addLegalDocument(userId, type, file);
+    await this.companyService.addLegalDocument(userId, type, file);
   }
 
   /**
@@ -305,7 +223,7 @@ export class InfluencerController {
     @Param('type') type: LegalDocumentType,
     @IdFromJWT() userId: string,
   ): Promise<void> {
-    await this.influencerService.deleteLegalDocument(userId, type);
+    await this.companyService.deleteLegalDocument(userId, type);
   }
 
   /**
@@ -322,29 +240,30 @@ export class InfluencerController {
     @Param('type') type: LegalDocumentType,
     @IdFromJWT() userId: string,
   ): Promise<any> {
-    const status = await this.influencerService.getLegalDocumentStatus(
+    const status = await this.companyService.getLegalDocumentStatus(
       userId,
       type,
     );
     return { status: status };
   }
-
   /**
-   * Retrieves the account link for the user to complete their Stripe onboarding.
+   * Creates a SetupIntent for the company associated with the user ID.
+   * This is used to allow the user to save a payment method for future use.
    *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns The URL of the account link for Stripe onboarding.
+   * @param userId - The ID of the user (company) requesting the SetupIntent. This is retrieved from the JWT token via the `@IdFromJWT` decorator.
+   * @returns A promise that resolves with an object containing the ID of the created SetupIntent.
+   *          This ID will be used on the frontend to complete the setup flow via Stripe.
    */
-  @ApiOperation({
-    summary: 'Get the Stripe account link for the user to complete onboarding',
-  })
   @UseGuards(AuthGuard)
-  @Get('stripe/account-link')
-  async getStripeAccountLink(
-    @IdFromJWT() userId: string,
-  ): Promise<{ url: string }> {
-    const url = await this.influencerService.getStripeAccountLink(userId);
-
-    return { url: url };
+  @Get('create-setup-intent')
+  async createSetupIntent(@IdFromJWT() userId: string): Promise<any> {
+    const company = await this.companyService.getCompany(userId);
+    const setupIntent = await this.companyService.createSetupIntent(userId);
+    const ephemeralKey = await this.companyService.createEphemeralKey(userId);
+    return {
+      setup_intent_secret: setupIntent.client_secret,
+      ephemeral_key_secret: ephemeralKey.secret,
+      customer_id: company.stripeCustomerId,
+    };
   }
 }

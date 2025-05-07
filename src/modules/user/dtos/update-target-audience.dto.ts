@@ -1,10 +1,4 @@
-import {
-  IsArray,
-  IsEmail,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsNotEmpty } from 'class-validator';
 
 export class UpdateTargetAudienceDto {
   @IsArray()

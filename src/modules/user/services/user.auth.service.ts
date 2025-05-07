@@ -7,7 +7,7 @@ import { InvalidPasswordException } from 'src/commons/errors/invalid-password';
 import { UserRepository } from '../repositories/user.repository';
 import { AccountType } from 'src/commons/enums/account_type';
 import { UserRegisteringEntity } from '../entities/user_registering.entity';
-import { UserAlreadyRegistering } from 'src/commons/errors/user-already-registering';
+import { InvalidGoogleTokenException } from 'src/commons/errors/invalid-google-token';
 import { UserAlreadyExists } from 'src/commons/errors/user-already-exist';
 import { InvalidCodeException } from 'src/commons/errors/invalid-code';
 import { UserForgettingPasswordEntity } from '../entities/user_forgetting_password.entity';
@@ -16,6 +16,11 @@ import { MailService } from '../../mail/services/mail.service';
 import { MailTemplate } from '../../mail/enums/mail-template.enum';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { CompanyRepository } from '../repositories/company.repository';
+import { StripeService } from 'src/modules/stripe/stripe.service';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { UserEntity } from '../entities/user.entity';
+import { UserAlreadyRegistering } from 'src/commons/errors/user-already-registering';
+import { UserAlreadyCompleted } from 'src/commons/errors/user-already-completed';
 
 @Injectable()
 export class UserAuthService {
@@ -35,13 +40,32 @@ export class UserAuthService {
   private readonly usersForgettingPassword: Array<UserForgettingPasswordEntity> =
     [];
 
+  /**
+   * An instance of the OAuth2Client, used for verifying Google ID tokens.
+   * This client allows interaction with Google's OAuth 2.0 system, specifically
+   * to verify the authenticity of Google ID tokens during the login process.
+   *
+   * It is used to ensure that the provided ID token comes from a valid source (Google)
+   * and belongs to the expected client (using the provided `GOOGLE_CLIENT_ID`).
+   *
+   * This client is typically used in the context of login operations where
+   * users authenticate via Google OAuth, allowing the application to securely
+   * verify user identity before granting access.
+   */
+  private client: OAuth2Client;
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
+    private readonly stripeService: StripeService,
   ) {}
+
+  async onModuleInit() {
+    this.client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
 
   /**
    * Logged a user.
@@ -166,18 +190,18 @@ export class UserAuthService {
     }
 
     // Save the user to the database
-    let createdUser = await this.userRepository.createUser(
+    const createdUser = await this.userRepository.createUser(
       user.email,
       user.passwordHash,
       user.accountType,
     );
 
     // Create related table
-    if (user.accountType == AccountType.influencer) {
-      await this.influencerRepository.createInfluencer(createdUser.id);
-    } else {
-      await this.companyRepository.createCompany(createdUser.id);
-    }
+    this.createRelatedTablesForUser(
+      createdUser.accountType,
+      createdUser.email,
+      createdUser.id,
+    );
 
     // Remove the user from the usersRegistering array
     this.usersRegistering.splice(this.usersRegistering.indexOf(user), 1);
@@ -187,6 +211,42 @@ export class UserAuthService {
       id: createdUser.id,
       account_type: user.accountType,
     } as JwtContent);
+  }
+
+  /**
+   * Creates the necessary related tables and Stripe accounts for the user based on their account type.
+   *
+   * This function handles the creation of a Stripe account or customer depending on whether the user
+   * is an influencer or a company. It also saves the relevant data (Stripe account ID or customer ID)
+   * in the appropriate database table (influencer or company).
+   *
+   * @param accountType The account type of the user (either `AccountType.influencer` or `AccountType.company`).
+   * @param email The email address of the user, used for creating the Stripe account or customer.
+   * @param userId The unique ID of the user, used to associate the Stripe account or customer with the user in the database.
+   *
+   * @returns A promise that resolves when the account creation and database updates are complete.
+   */
+  async createRelatedTablesForUser(
+    accountType: AccountType,
+    email: string,
+    userId: number,
+  ): Promise<void> {
+    if (accountType == AccountType.influencer) {
+      // Create a Stripe Express account (type "connect") for the influencer
+      const stripeAccount = await this.stripeService.createAccount(email);
+
+      // Save the influencer in the database with their Stripe account ID
+      await this.influencerRepository.createInfluencer(
+        userId,
+        stripeAccount.id,
+      );
+    } else {
+      // Create a Stripe customer account for the company (to handle payments and cards)
+      const stripeCustomer = await this.stripeService.createCustomer(email);
+
+      // Save the company with the Stripe customer ID for future payments
+      await this.companyRepository.createCompany(userId, stripeCustomer.id);
+    }
   }
 
   /**
@@ -339,5 +399,132 @@ export class UserAuthService {
         code: user.verificationCode,
       },
     });
+  }
+
+  /**
+   * Log in or register a user via Google OAuth.
+   * - If the user doesn't exist, a new one is created.
+   * - If the user exists without accountType, the frontend should complete it later.
+   * - If everything is valid, a JWT is returned.
+   *
+   * @param idToken - Google OAuth ID token.
+   * @returns A status and either a JWT or a provider user ID to complete registration.
+   * @throws InvalidGoogleTokenException - If the ID token is invalid or expired.
+   */
+  async loginWithGoogle(idToken: string): Promise<any> {
+    // 1. Verify the Google token
+    let payload: TokenPayload;
+    try {
+      const ticket = await this.client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new InvalidGoogleTokenException();
+    }
+
+    const providerUserId = payload.sub;
+    const email = payload.email;
+
+    // 2. Try to find existing OAuth user
+    const oauthUser = await this.userRepository.getOAuthUser(
+      'google',
+      providerUserId,
+    );
+
+    let user: UserEntity | null = null;
+
+    if (oauthUser) {
+      // If linked OAuth user exists, fetch associated user
+      user = await this.userRepository.getUserById(oauthUser.userId);
+
+      // User not completed
+      if (user.accountType === null) {
+        return {
+          status: 'new',
+          provider_user_id: providerUserId,
+        };
+      }
+    } else {
+      // No OAuth user found, try to find user by email
+      user = await this.userRepository.getUserByEmail(email);
+
+      const isNew = !user;
+
+      // Create user if not found
+      if (isNew) {
+        user = await this.userRepository.createUser(email, null, null);
+      }
+      // Link OAuth account
+      await this.userRepository.createOAuthUser(
+        user.id,
+        'google',
+        providerUserId,
+      );
+
+      // If it's a new user or missing account type, ask frontend to complete
+      if (isNew) {
+        return {
+          status: 'new',
+          provider_user_id: providerUserId,
+        };
+      }
+    }
+
+    // 3. Generate token for completed user
+    const jwt = await this.jwtService.signAsync({
+      id: user.id,
+      account_type: user.accountType,
+    } as JwtContent);
+
+    return {
+      status: 'logged',
+      access_token: jwt,
+    };
+  }
+
+  /**
+   * Completes the setup of a user who registered via Google OAuth but has not yet chosen an account type.
+   *
+   * @param providerUserId - The unique ID from the OAuth provider (e.g., Google).
+   * @param accountType - The account type to assign (influencer or company).
+   * @returns A signed JWT token for the now-completed user.
+   * @throws UserNotFoundException - If no OAuth user is found with the given providerUserId.
+   * @throws UserAlreadyCompleted - If the user already has an accountType set.
+   */
+  async completeOAuthGoogleUser(
+    providerUserId: string,
+    accountType: AccountType,
+  ): Promise<any> {
+    // Find the OAuth user by Google provider ID
+    const oauthUser = await this.userRepository.getOAuthUser(
+      'google',
+      providerUserId,
+    );
+
+    if (!oauthUser) {
+      throw new UserNotFoundException();
+    }
+
+    // Get the associated user
+    const user = await this.userRepository.getUserById(oauthUser.userId);
+
+    // Prevent double completion
+    if (user.accountType !== null) {
+      throw new UserAlreadyCompleted();
+    }
+
+    // Create related tables (Stripe account/customer)
+    await this.createRelatedTablesForUser(accountType, user.email, user.id);
+
+    // Update the user’s account type
+    await this.userRepository.updateUserAccountType(user.id, accountType);
+
+    // Generate and return a JWT
+    return await this.jwtService.signAsync({
+      id: user.id,
+      account_type: user.accountType,
+    } as JwtContent);
   }
 }

@@ -1,23 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { FileRequiredException } from 'src/commons/errors/file-required';
-import { InfluencerRepository } from '../repositories/influencer.repository';
 import { UserNotFoundException } from 'src/commons/errors/user-not-found';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import internal from 'stream';
-import { FileNotFoundException } from 'src/commons/errors/file-not-found';
 import { PlatformType } from 'src/commons/enums/platform_type';
 import { SocialNetworkEntity } from '../entities/social_network.entity';
 import { SocialNetworkExists } from 'src/commons/errors/social-network-already-exist';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { LegalDocumentAlreadyExists } from 'src/commons/errors/legal-document-already-exist';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
+import { CompanyRepository } from '../repositories/company.repository';
 import { StripeService } from 'src/modules/stripe/stripe.service';
+import { CompanyEntity } from '../entities/company.entity';
+import Stripe from 'stripe';
 
 @Injectable()
-export class InfluencerService {
+export class CompanyService {
   constructor(
-    private readonly influencerRepository: InfluencerRepository,
+    private readonly companyRepository: CompanyRepository,
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
   ) {}
@@ -37,7 +38,7 @@ export class InfluencerService {
       throw new FileRequiredException();
     }
 
-    const user = await this.influencerRepository.getInfluencer(userId);
+    const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
@@ -48,11 +49,11 @@ export class InfluencerService {
     // Upload new profile picture
     const newProfilePicture = await this.minioService.uploadFile(
       file,
-      BucketType.influencer_pictures,
+      BucketType.company_pictures,
     );
 
     // Update user
-    await this.influencerRepository.updateProfilePicture(
+    await this.companyRepository.updateProfilePicture(
       userId,
       newProfilePicture,
     );
@@ -60,7 +61,7 @@ export class InfluencerService {
     /// Delete previous profile picture
     if (oldProfilePicture) {
       await this.minioService.removeFile(
-        BucketType.influencer_pictures,
+        BucketType.company_pictures,
         oldProfilePicture,
       );
     }
@@ -76,86 +77,14 @@ export class InfluencerService {
    * @throws Error if the user is not found or the profile picture does not exist.
    */
   async getProfilePicture(userId: string): Promise<internal.Readable> {
-    const user = await this.influencerRepository.getInfluencer(userId);
+    const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
     const file = await this.minioService.getFile(
-      BucketType.influencer_pictures,
+      BucketType.company_pictures,
       user.profilePicture,
-    );
-
-    return file;
-  }
-
-  /**
-   * Updates the portfolio for a user.
-   *
-   * @param userId - The ID of the user whose portfolio is being updated.
-   * @param files - The uploaded files for the portfolio.
-   * @throws Error if no files are provided or the user is not found.
-   */
-  async updateAllPortfolio(
-    userId: string,
-    files: Express.Multer.File[],
-  ): Promise<string[]> {
-    if (!files || files.length === 0) {
-      throw new FileRequiredException();
-    }
-
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    // Keep references to previous portfolio files, to be deleted later
-    const oldPortfolio = user.portfolio || [];
-
-    // Upload new portfolio files
-    const newPortfolio = await Promise.all(
-      files.map((file) =>
-        this.minioService.uploadFile(file, BucketType.portfolios),
-      ),
-    );
-
-    // Update user
-    await this.influencerRepository.updatePortfolio(userId, newPortfolio);
-
-    // Delete previous portfolio files
-    await Promise.all(
-      oldPortfolio.map((file) =>
-        this.minioService.removeFile(BucketType.portfolios, file),
-      ),
-    );
-
-    return newPortfolio;
-  }
-
-  /**
-   * Retrieves a specific portfolio file for a user by its name.
-   *
-   * @param userId - The ID of the user whose portfolio file is being retrieved.
-   * @param fileName - The name of the portfolio file to retrieve.
-   * @returns The file as a readable stream.
-   * @throws Error if the user is not found or the file does not exist.
-   */
-  async getPortfolio(
-    userId: string,
-    fileName: string,
-  ): Promise<internal.Readable> {
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    if (!user.portfolio || !user.portfolio.includes(fileName)) {
-      throw new FileNotFoundException();
-    }
-
-    const file = await this.minioService.getFile(
-      BucketType.portfolios,
-      fileName,
     );
 
     return file;
@@ -169,12 +98,12 @@ export class InfluencerService {
    * @throws Error if the user is not found.
    */
   async updateName(userId: string, name: string): Promise<void> {
-    const user = await this.influencerRepository.getInfluencer(userId);
+    const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
-    await this.influencerRepository.updateName(userId, name);
+    await this.companyRepository.updateName(userId, name);
   }
 
   /**
@@ -185,12 +114,12 @@ export class InfluencerService {
    * @throws Error if the user is not found.
    */
   async updateDescription(userId: string, description: string): Promise<void> {
-    const user = await this.influencerRepository.getInfluencer(userId);
+    const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
-    await this.influencerRepository.updateDescription(userId, description);
+    await this.companyRepository.updateDescription(userId, description);
   }
 
   /**
@@ -201,50 +130,12 @@ export class InfluencerService {
    * @throws Error if the user is not found.
    */
   async updateDepartment(userId: string, department: string): Promise<void> {
-    const user = await this.influencerRepository.getInfluencer(userId);
+    const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
-    await this.influencerRepository.updateDepartment(userId, department);
-  }
-
-  /**
-   * Updates the themes of the user.
-   *
-   * @param userId - The ID of the user whose themes are being updated.
-   * @param themes - The new themes for the user.
-   * @throws Error if the user is not found.
-   */
-  async updateThemes(userId: string, themes: string[]): Promise<void> {
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    await this.influencerRepository.updateThemes(userId, themes);
-  }
-
-  /**
-   * Updates the target audience of the user.
-   *
-   * @param userId - The ID of the user whose target audience is being updated.
-   * @param targetAudience - The new target audience for the user.
-   * @throws Error if the user is not found.
-   */
-  async updateTargetAudience(
-    userId: string,
-    targetAudience: string[],
-  ): Promise<void> {
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    await this.influencerRepository.updateTargetAudience(
-      userId,
-      targetAudience,
-    );
+    await this.companyRepository.updateDepartment(userId, department);
   }
 
   /**
@@ -260,13 +151,13 @@ export class InfluencerService {
     platform: PlatformType,
     url: string,
   ): Promise<void> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
       throw new UserNotFoundException();
     }
 
-    const exists = await this.influencerRepository.getSocialNetworkByType(
-      influencer.id,
+    const exists = await this.companyRepository.getSocialNetworkByType(
+      company.id,
       platform,
     );
 
@@ -274,8 +165,8 @@ export class InfluencerService {
       throw new SocialNetworkExists();
     }
 
-    await this.influencerRepository.createSocialNetwork(
-      influencer.id,
+    await this.companyRepository.createSocialNetwork(
+      company.id,
       platform,
       0,
       url,
@@ -290,12 +181,12 @@ export class InfluencerService {
    * @throws Error if the user is not found.
    */
   async getSocialNetworks(userId: string): Promise<SocialNetworkEntity[]> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
       throw new UserNotFoundException();
     }
 
-    const sn = await this.influencerRepository.getSocialNetworks(influencer.id);
+    const sn = await this.companyRepository.getSocialNetworks(company.id);
     return sn;
   }
 
@@ -310,12 +201,12 @@ export class InfluencerService {
     userId: string,
     socialNetworkId: string,
   ): Promise<void> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
       throw new UserNotFoundException();
     }
 
-    await this.influencerRepository.deleteSocialNetwork(socialNetworkId);
+    await this.companyRepository.deleteSocialNetwork(socialNetworkId);
   }
 
   /**
@@ -331,13 +222,13 @@ export class InfluencerService {
     socialNetworkId: string,
     url: string,
   ): Promise<void> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
       throw new UserNotFoundException();
     }
     /// NOTE : Should check if user own this social network
 
-    await this.influencerRepository.updateSocialNetwork(socialNetworkId, url);
+    await this.companyRepository.updateSocialNetwork(socialNetworkId, url);
   }
 
   async addLegalDocument(
@@ -345,13 +236,13 @@ export class InfluencerService {
     type: LegalDocumentType,
     file: Express.Multer.File,
   ): Promise<void> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
       throw new UserNotFoundException();
     }
 
-    const exists = await this.influencerRepository.getLegalDocumentByType(
-      influencer.id,
+    const exists = await this.companyRepository.getLegalDocumentByType(
+      user.id,
       type,
     );
     if (exists) {
@@ -359,8 +250,8 @@ export class InfluencerService {
     }
 
     const document = await this.minioService.uploadFile(file, BucketType.legal);
-    await this.influencerRepository.addLegalDocument(
-      influencer.id,
+    await this.companyRepository.addLegalDocument(
+      user.id,
       type,
       LegalDocumentStatus.pending,
       document,
@@ -368,27 +259,27 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves the status of a legal document for a specific influencer based on the document type.
+   * Retrieves the status of a legal document for a specific company based on the document type.
    *
-   * @param userId - The ID of the influencer whose legal document status is being retrieved.
+   * @param userId - The ID of the company whose legal document status is being retrieved.
    * @param type - The type of the legal document whose status is being checked (e.g., contract, agreement, etc.).
    *
    * @returns The status of the legal document. If no document exists for the given type,
    *          the status will be `LegalDocumentStatus.missing`.
    *
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
    */
   async getLegalDocumentStatus(
     userId: string,
     type: LegalDocumentType,
   ): Promise<LegalDocumentStatus> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
       throw new UserNotFoundException();
     }
 
-    const document = await this.influencerRepository.getLegalDocumentByType(
-      influencer.id,
+    const document = await this.companyRepository.getLegalDocumentByType(
+      user.id,
       type,
     );
 
@@ -400,26 +291,26 @@ export class InfluencerService {
   }
 
   /**
-   * Deletes a legal document of a specific influencer based on the document ID and type.
+   * Deletes a legal document of a specific company based on the document ID and type.
    *
-   * @param userId - The ID of the user (influencer) whose legal document is to be deleted.
+   * @param userId - The ID of the user (company) whose legal document is to be deleted.
    * @param type - The type of the legal document to be deleted (e.g., contract, agreement, etc.).
    *
    * @returns A promise that resolves when the document is deleted.
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
-   * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the influencer.
+   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
+   * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the company.
    */
   async deleteLegalDocument(
     userId: string,
     type: LegalDocumentType,
   ): Promise<void> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
       throw new UserNotFoundException();
     }
 
-    const document = await this.influencerRepository.getLegalDocumentByType(
-      influencer.id,
+    const document = await this.companyRepository.getLegalDocumentByType(
+      user.id,
       type,
     );
 
@@ -428,27 +319,71 @@ export class InfluencerService {
       return;
     }
     await this.minioService.removeFile(BucketType.legal, document.document);
-    await this.influencerRepository.deleteLegalDocument(document.id);
+    await this.companyRepository.deleteLegalDocument(document.id);
   }
 
   /**
-   * Retrieves the account link for a specific influencer to complete their Stripe onboarding.
+   * Creates a SetupIntent for a specific company to allow them to save a payment method.
    *
-   * @param userId - The ID of the user (influencer) whose Stripe account link is to be retrieved.
+   * @param userId - The ID of the company for which the SetupIntent is to be created.
    *
-   * @returns A promise that resolves with the URL of the Stripe account link.
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   * @returns A promise that resolves with the created SetupIntent.
+   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
    */
-  async getStripeAccountLink(userId: string): Promise<string> {
-    const influencer = await this.influencerRepository.getInfluencer(userId);
-    if (!influencer) {
+  async createSetupIntent(userId: string): Promise<Stripe.SetupIntent> {
+    // Fetch the company by userId to retrieve the Stripe customer ID
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      // If the company does not exist, throw an error
       throw new UserNotFoundException();
     }
 
-    const url = await this.stripeService.createAccountLink(
-      influencer.stripeAccountId,
+    // Create a SetupIntent with the Stripe customer ID to allow payment method saving
+    const setupIntent = await this.stripeService.createSetupIntent(
+      user.stripeCustomerId,
     );
 
-    return url;
+    return setupIntent;
+  }
+
+  /**
+   * Retrieves the company entity associated with a given user.
+   *
+   * @param {string} userId - The unique identifier of the user.
+   * @returns {Promise<CompanyEntity>} - The company entity linked to the user.
+   * @throws {UserNotFoundException} - Thrown if no user is found with the given ID.
+   */
+  async getCompany(userId: string): Promise<CompanyEntity> {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    return user;
+  }
+
+  /**
+   * Creates an Ephemeral Key for a specific company to authorize temporary access to Stripe Customer resources from the mobile frontend.
+   *
+   * @param userId - The ID of the company for which the Ephemeral Key is to be created.
+   *
+   * @returns A promise that resolves with the secret of the created Ephemeral Key.
+   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
+   * @throws {StripeError} If the Ephemeral Key creation fails.
+   */
+  async createEphemeralKey(userId: string): Promise<Stripe.EphemeralKey> {
+    // Fetch the company to retrieve the Stripe customer ID
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      // If the company does not exist, throw an error
+      throw new UserNotFoundException();
+    }
+
+    // Create an Ephemeral Key for the specified Stripe customer
+    const ephemeralKey = await this.stripeService.createEphemeralKey(
+      user.stripeCustomerId,
+    );
+
+    return ephemeralKey;
   }
 }
