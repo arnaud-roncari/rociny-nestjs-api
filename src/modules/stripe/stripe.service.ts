@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import Stripe from 'stripe';
 
 @Injectable()
-export class StripeService {
+export class StripeService implements OnModuleInit {
   private static stripe: Stripe;
 
   async onModuleInit() {
     if (!StripeService.stripe) {
       StripeService.stripe = new Stripe(process.env.STRIPE_SECRET, {
-        apiVersion: '2025-03-31.basil',
+        apiVersion: '2025-04-30.basil',
       });
     }
   }
@@ -58,7 +58,7 @@ export class StripeService {
   async createEphemeralKey(customerId: string): Promise<Stripe.EphemeralKey> {
     return await StripeService.stripe.ephemeralKeys.create(
       { customer: customerId },
-      { apiVersion: '2025-03-31.basil' },
+      { apiVersion: '2025-04-30.basil' },
     );
   }
 }
