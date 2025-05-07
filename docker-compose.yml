@@ -27,6 +27,10 @@ services:
       - MINIO_PORT=${MINIO_PORT}
       - STRIPE_SECRET=${STRIPE_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID}
+      - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
+      - GMAIL_REFRESH_TOKEN=${GMAIL_REFRESH_TOKEN}
+      - GMAIL_USER=${GMAIL_USER}
     depends_on:
       - rociny-postgres
       - rociny-minio

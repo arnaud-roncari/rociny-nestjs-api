@@ -11,6 +11,7 @@ import { CompanyRepository } from './repositories/company.repository';
 import { StripeService } from '../stripe/stripe.service';
 import { CompanyService } from './services/company.service';
 import { CompanyController } from './controllers/company.controller';
+import { EmailService } from '../email/email.service';
 
 @Module({
   providers: [
@@ -24,6 +25,7 @@ import { CompanyController } from './controllers/company.controller';
     StripeService,
     CompanyRepository,
     CompanyService,
+    EmailService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })
