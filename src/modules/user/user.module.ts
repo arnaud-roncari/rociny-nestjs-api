@@ -11,9 +11,13 @@ import { CompanyRepository } from './repositories/company.repository';
 import { StripeService } from '../stripe/stripe.service';
 import { CompanyService } from './services/company.service';
 import { CompanyController } from './controllers/company.controller';
-import { EmailService } from '../email/email.service';
+import { EmailService } from '../email/services/email.service';
+import { HttpModule } from '@nestjs/axios';
+import { InstagramRepository } from '../collaboration/repositories/instagram.repository';
+import { TokenService } from './services/token.service';
 
 @Module({
+  imports: [HttpModule],
   providers: [
     PostgresqlService,
     InfluencerRepository,
@@ -25,7 +29,9 @@ import { EmailService } from '../email/email.service';
     StripeService,
     CompanyRepository,
     CompanyService,
+    InstagramRepository,
     EmailService,
+    TokenService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

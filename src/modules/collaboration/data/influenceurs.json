@@ -1,0 +1,461 @@
+[
+  {
+    "name": "Laura Dumont",
+    "gender": "FEMALE",
+    "nicheCategory": "mode",
+    "posts": [
+      {
+        "date": "2024-04-10",
+        "views": 7823,
+        "likes": 498,
+        "comments": 93,
+        "saves": 47,
+        "profileVisits": 287,
+        "newFollowers": 38,
+        "accountsReached": 5238,
+        "interactingAccounts": 415,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-22",
+        "views": 5127,
+        "likes": 432,
+        "comments": 62,
+        "saves": 58,
+        "profileVisits": 165,
+        "newFollowers": 23,
+        "accountsReached": 3756,
+        "interactingAccounts": 375,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Marc Lefevre",
+    "gender": "MALE",
+    "nicheCategory": "jardinage",
+    "posts": [
+      {
+        "date": "2024-04-10",
+        "views": 9345,
+        "likes": 623,
+        "comments": 138,
+        "saves": 87,
+        "profileVisits": 367,
+        "newFollowers": 42,
+        "accountsReached": 6823,
+        "interactingAccounts": 532,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-15",
+        "views": 7834,
+        "likes": 653,
+        "comments": 156,
+        "saves": 92,
+        "profileVisits": 456,
+        "newFollowers": 61,
+        "accountsReached": 7834,
+        "interactingAccounts": 567,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Amina Tazi",
+    "gender": "FEMALE",
+    "nicheCategory": "food",
+    "posts": [
+      {
+        "date": "2024-04-10",
+        "views": 11432,
+        "likes": 745,
+        "comments": 187,
+        "saves": 112,
+        "profileVisits": 452,
+        "newFollowers": 85,
+        "accountsReached": 7856,
+        "interactingAccounts": 632,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-18",
+        "views": 8956,
+        "likes": 623,
+        "comments": 142,
+        "saves": 87,
+        "profileVisits": 358,
+        "newFollowers": 63,
+        "accountsReached": 6234,
+        "interactingAccounts": 523,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Karim Benaissa",
+    "gender": "MALE",
+    "nicheCategory": "sport",
+    "posts": [
+      {
+        "date": "2024-04-02",
+        "views": 7864,
+        "likes": 487,
+        "comments": 132,
+        "saves": 56,
+        "profileVisits": 312,
+        "newFollowers": 53,
+        "accountsReached": 5435,
+        "interactingAccounts": 412,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-10",
+        "views": 9324,
+        "likes": 587,
+        "comments": 167,
+        "saves": 79,
+        "profileVisits": 398,
+        "newFollowers": 74,
+        "accountsReached": 6345,
+        "interactingAccounts": 512,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Emilie Roussel",
+    "gender": "FEMALE",
+    "nicheCategory": "parentalité",
+    "posts": [
+      {
+        "date": "2024-04-03",
+        "views": 9234,
+        "likes": 612,
+        "comments": 187,
+        "saves": 43,
+        "profileVisits": 332,
+        "newFollowers": 45,
+        "accountsReached": 6543,
+        "interactingAccounts": 532,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-05",
+        "views": 9876,
+        "likes": 642,
+        "comments": 212,
+        "saves": 49,
+        "profileVisits": 354,
+        "newFollowers": 51,
+        "accountsReached": 7123,
+        "interactingAccounts": 578,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Hugo Mercier",
+    "gender": "MALE",
+    "nicheCategory": "jeux",
+    "posts": [
+      {
+        "date": "2024-04-08",
+        "views": 6234,
+        "likes": 432,
+        "comments": 112,
+        "saves": 58,
+        "profileVisits": 289,
+        "newFollowers": 65,
+        "accountsReached": 4345,
+        "interactingAccounts": 387,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-28",
+        "views": 7654,
+        "likes": 534,
+        "comments": 165,
+        "saves": 76,
+        "profileVisits": 367,
+        "newFollowers": 87,
+        "accountsReached": 5123,
+        "interactingAccounts": 476,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Léna Morvan",
+    "gender": "FEMALE",
+    "nicheCategory": "art",
+    "posts": [
+      {
+        "date": "2024-03-30",
+        "views": 8765,
+        "likes": 673,
+        "comments": 212,
+        "saves": 76,
+        "profileVisits": 412,
+        "newFollowers": 78,
+        "accountsReached": 5876,
+        "interactingAccounts": 587,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-12",
+        "views": 8543,
+        "likes": 623,
+        "comments": 198,
+        "saves": 72,
+        "profileVisits": 387,
+        "newFollowers": 72,
+        "accountsReached": 5432,
+        "interactingAccounts": 543,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Jean Martin",
+    "gender": "MALE",
+    "nicheCategory": "photographie",
+    "posts": [
+      {
+        "date": "2024-04-05",
+        "views": 12543,
+        "likes": 876,
+        "comments": 387,
+        "saves": 112,
+        "profileVisits": 578,
+        "newFollowers": 42,
+        "accountsReached": 8432,
+        "interactingAccounts": 756,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-08",
+        "views": 12876,
+        "likes": 887,
+        "comments": 392,
+        "saves": 118,
+        "profileVisits": 587,
+        "newFollowers": 47,
+        "accountsReached": 8765,
+        "interactingAccounts": 784,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Claire Dubois",
+    "gender": "FEMALE",
+    "nicheCategory": "littérature",
+    "posts": [
+      {
+        "date": "2024-04-06",
+        "views": 7654,
+        "likes": 612,
+        "comments": 245,
+        "saves": 38,
+        "profileVisits": 312,
+        "newFollowers": 43,
+        "accountsReached": 5234,
+        "interactingAccounts": 523,
+        "contentType": "POST"
+      },
+      {
+        "date": "2024-03-17",
+        "views": 8345,
+        "likes": 653,
+        "comments": 287,
+        "saves": 46,
+        "profileVisits": 342,
+        "newFollowers": 45,
+        "accountsReached": 5876,
+        "interactingAccounts": 567,
+        "contentType": "REEL"
+      }
+    ]
+  },
+  {
+    "name": "Nicolas Perrin",
+    "gender": "MALE",
+    "niche": "voyage",
+    "ageRange": [
+      25,
+      34
+    ],
+    "followers": 158713,
+    "posts": [
+      {
+        "date": "2025-03-10",
+        "views": 105058,
+        "likes": 2352,
+        "comments": 3649,
+        "saves": 350,
+        "profileVisits": 988,
+        "newFollowers": 493,
+        "accountsReached": 67814,
+        "interactingAccounts": 2652,
+        "contentType": "POST"
+      },
+      {
+        "date": "2025-02-20",
+        "views": 132688,
+        "likes": 2041,
+        "comments": 2715,
+        "saves": 227,
+        "profileVisits": 859,
+        "newFollowers": 402,
+        "accountsReached": 90857,
+        "interactingAccounts": 2298,
+        "contentType": "POST"
+      }
+    ]
+  },
+  {
+  "name": "Nora Benchekroun",
+  "gender": "FEMALE",
+  "niche": "beaute",
+  "ageRange": [
+    18,
+    34
+  ],
+  "followers": 58765,
+  "posts": [
+    {
+      "date": "2025-05-28",
+      "views": 89765,
+      "likes": 4876,
+      "comments": 2123,
+      "saves": 487,
+      "profileVisits": 3876,
+      "newFollowers": 654,
+      "accountsReached": 59876,
+      "interactingAccounts": 4654,
+      "contentType": "POST"
+    },
+    {
+      "date": "2025-05-21",
+      "views": 81234,
+      "likes": 4321,
+      "comments": 1876,
+      "saves": 423,
+      "profileVisits": 3456,
+      "newFollowers": 587,
+      "accountsReached": 54321,
+      "interactingAccounts": 4123,
+      "contentType": "POST"
+    },
+    {
+      "date": "2025-05-14",
+      "views": 93456,
+      "likes": 5123,
+      "comments": 2345,
+      "saves": 532,
+      "profileVisits": 4123,
+      "newFollowers": 723,
+      "accountsReached": 62345,
+      "interactingAccounts": 4876,
+      "contentType": "POST"
+    },
+    {
+      "date": "2025-05-07",
+      "views": 98765,
+      "likes": 5432,
+      "comments": 2654,
+      "saves": 576,
+      "profileVisits": 4543,
+      "newFollowers": 823,
+      "accountsReached": 65432,
+      "interactingAccounts": 5123,
+      "contentType": "POST"
+    },
+    {
+      "date": "2025-04-30",
+      "views": 96543,
+      "likes": 5321,
+      "comments": 2543,
+      "saves": 554,
+      "profileVisits": 4321,
+      "newFollowers": 765,
+      "accountsReached": 64321,
+      "interactingAccounts": 5012,
+      "contentType": "POST"
+    }
+  ]
+},
+  {
+    "name": "Lucas Bernard",
+    "gender": "MALE",
+    "niche": "tech",
+    "ageRange": [
+      18,
+      34
+    ],
+    "followers": 72345,
+    "posts": [
+      {
+        "date": "2025-03-25",
+        "views": 102345,
+        "likes": 5876,
+        "comments": 2876,
+        "saves": 765,
+        "profileVisits": 5432,
+        "newFollowers": 987,
+        "accountsReached": 68765,
+        "interactingAccounts": 5543,
+        "contentType": "POST"
+      },
+      {
+        "date": "2025-04-10",
+        "views": 96543,
+        "likes": 5432,
+        "comments": 2543,
+        "saves": 687,
+        "profileVisits": 5123,
+        "newFollowers": 876,
+        "accountsReached": 64321,
+        "interactingAccounts": 5123,
+        "contentType": "POST"
+      }
+    ]
+  },
+  {
+    "name": "Marie Rousseau",
+    "gender": "FEMALE",
+    "niche": "lifestyle",
+    "ageRange": [
+      25,
+      44
+    ],
+    "followers": 38765,
+    "posts": [
+      {
+        "date": "2025-03-12",
+        "views": 58765,
+        "likes": 3654,
+        "comments": 1543,
+        "saves": 298,
+        "profileVisits": 2765,
+        "newFollowers": 198,
+        "accountsReached": 38765,
+        "interactingAccounts": 3432,
+        "contentType": "POST"
+      },
+      {
+        "date": "2025-03-29",
+        "views": 53456,
+        "likes": 3321,
+        "comments": 1432,
+        "saves": 276,
+        "profileVisits": 2543,
+        "newFollowers": 176,
+        "accountsReached": 35432,
+        "interactingAccounts": 3123,
+        "contentType": "POST"
+      }
+    ]
+  }
+]

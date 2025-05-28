@@ -98,6 +98,7 @@ export class UserRepository {
     await this.postgresqlService.query(query, values);
   }
 
+
   /**
    * Retrieves an OAuth user based on the provider and provider user ID.
    *
@@ -150,5 +151,45 @@ export class UserRepository {
     const r = await this.postgresqlService.query(query, values);
 
     return OAuthUserEntity.fromJson(r[0]);
+  }
+
+  /**
+   * Create a new user by facebook.
+   * @param email - The user's email.
+   * @param passwordHash - The hashed password of the user.
+   * @param facebookId - The facebook id of the user.
+   * @param accountType - The account type of the user.
+   * @returns The created user as an entity.
+   */
+  async createUserByFacebook(
+    email: string,
+    passwordHash: string,
+    facebookId: string,
+    accountType: string,
+  ): Promise<UserEntity> {
+    const query = `
+      INSERT INTO api.users (email, password_hash, facebook_id, account_type)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `;
+    const values = [email, passwordHash, facebookId, accountType];
+    const result = await this.postgresqlService.query(query, values);
+    return UserEntity.fromJson(result[0]);
+  }
+
+  /**
+     * Fetch an Facebook account by Facebook ID (from Facebook Graph API).
+     * @param FacebookId - The external Facebook Business ID.
+     * @returns The account as an entity, or null if not found.
+     */
+  async findByFacebookId(FacebookId: string): Promise<UserEntity | null> {
+    const query = `
+      SELECT *
+      FROM api.users
+      WHERE facebook_id = $1
+      LIMIT 1
+    `;
+    const result = await this.postgresqlService.query(query, [FacebookId]);
+    return result.length > 0 ? UserEntity.fromJson(result[0]) : null;
   }
 }

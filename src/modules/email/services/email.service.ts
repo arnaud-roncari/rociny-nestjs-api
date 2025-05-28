@@ -4,7 +4,7 @@ import { google } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as handlebars from 'handlebars';
-import { EmailTemplate } from './enums/email-template.enum';
+import { EmailTemplate } from '../enums/email-template.enum';
 import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()

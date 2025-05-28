@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { LoggedDto } from '../dtos/logged.dto';
@@ -10,10 +10,21 @@ import { ForgotPasswordDto } from '../dtos/forgot-password.dto';
 import { VerifyForgotPasswordDto } from '../dtos/verify-forgot-password.dto';
 import { ResentForgotPasswordVerificationCodeDto } from '../dtos/resent-forgot-password-verification-code';
 import { CompleteOAuthGoogleUserDto } from '../dtos/complete-oauth-google-user.dto';
+import { AuthGuard } from 'src/commons/guards/auth.guard';
+import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
 
 @Controller('user/auth')
 export class UserAuthController {
   constructor(private readonly authService: UserAuthService) {}
+
+  @UseGuards(AuthGuard)
+  @Post('link')
+  async linkFacebookAccount(
+    @Body('userAccessToken') userAccessToken: string,
+    @IdFromJWT() userId: string,
+  ) {
+    return this.authService.linkFacebookAccountFromToken(userAccessToken, userId);
+  }
 
   /**
    * Handle POST requests to log a user.

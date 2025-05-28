@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtContent } from '../../../commons/types/jwt-content';
 import * as argon2 from 'argon2';
@@ -12,7 +12,7 @@ import { UserAlreadyExists } from 'src/commons/errors/user-already-exist';
 import { InvalidCodeException } from 'src/commons/errors/invalid-code';
 import { UserForgettingPasswordEntity } from '../entities/user_forgetting_password.entity';
 import { UserAlreadyResetingPassword } from 'src/commons/errors/user-already-reseting-password';
-import { EmailService } from '../../email/email.service';
+import { EmailService } from '../../email/services/email.service';
 import { EmailTemplate } from '../../email/enums/email-template.enum';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { CompanyRepository } from '../repositories/company.repository';
@@ -21,6 +21,10 @@ import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { UserEntity } from '../entities/user.entity';
 import { UserAlreadyRegistering } from 'src/commons/errors/user-already-registering';
 import { UserAlreadyCompleted } from 'src/commons/errors/user-already-completed';
+import { HttpService } from '@nestjs/axios';
+import { InstagramRepository } from '../../collaboration/repositories/instagram.repository';
+import { firstValueFrom } from 'rxjs';
+import { TokenService } from './token.service';
 
 @Injectable()
 export class UserAuthService {
@@ -61,11 +65,130 @@ export class UserAuthService {
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly stripeService: StripeService,
+    private readonly httpService: HttpService,
+    private readonly instagramRepository: InstagramRepository,
+    private readonly tokenService: TokenService,
   ) {}
 
   async onModuleInit() {
     this.client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
+
+  async linkFacebookAccountFromToken(
+    userAccessToken: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!userId) throw new UnauthorizedException('Token invalide ou incomplet.');
+
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) throw new NotFoundException('Utilisateur non trouvé.');
+
+      // 1. Échange du token utilisateur en long-lived token
+      const longLivedUserToken = await this.tokenService.exchangeUserToken(userAccessToken);
+
+      // 2. Profil Facebook
+      const fbProfileUrl = `https://graph.facebook.com/me?fields=id,name,email&access_token=${longLivedUserToken}`;
+      const profileRes = await firstValueFrom(this.httpService.get(fbProfileUrl));
+      const { id: facebook_id, name, email } = profileRes.data;
+      
+
+      // 3. Pages Facebook
+      const pagesUrl = `https://graph.facebook.com/me/accounts?access_token=${longLivedUserToken}`;
+      const pagesRes = await firstValueFrom(this.httpService.get(pagesUrl));
+      const pages = pagesRes.data.data;
+
+      if (!pages.length) {
+        return {
+          success: false,
+          message: 'Aucune page Facebook liée à un compte Instagram n’a été trouvée. Vérifiez les autorisations.',
+        };
+      }
+
+      let igAccountsFound = 0;
+
+      for (const page of pages) {
+        const pageAccessToken = page.access_token;
+
+        // 4. Vérifie si la page est liée à un compte Instagram
+        const igRes = await firstValueFrom(
+          this.httpService.get(
+            `https://graph.facebook.com/${page.id}?fields=connected_instagram_account&access_token=${pageAccessToken}`,
+          ),
+        );
+
+        const igAccount = igRes.data.connected_instagram_account;
+        if (!igAccount?.id) continue;
+
+        // 5. Infos Instagram
+        const igInfoRes = await firstValueFrom(
+          this.httpService.get(
+            `https://graph.facebook.com/${igAccount.id}?fields=id,username,profile_picture_url,biography,website,followers_count,follows_count,media_count&access_token=${pageAccessToken}`,
+          ),
+        );
+
+        const igData = igInfoRes.data;
+
+        // 6. Prépare les données
+        const now = new Date();
+        const igPayload = {
+          user_id: userId,
+          instagram_id: igData.id,
+          facebook_id: facebook_id,
+          username: igData.username,
+          name,
+          profile_picture_url: igData.profile_picture_url || null,
+          biography: igData.biography || null,
+          website: igData.website || null,
+          followers_count: igData.followers_count || 0,
+          follows_count: igData.follows_count || 0,
+          media_count: igData.media_count || 0,
+          average_engagement_rate: null,
+          average_likes: 0,
+          average_comments: 0,
+          reach: 0,
+          impressions: 0,
+          profile_views: 0,
+          website_clicks: 0,
+          insights_last_updated: null,
+          facebook_token: longLivedUserToken,
+          page_access_token: pageAccessToken,
+          user_token_last_refresh: now,
+          page_token_last_refresh: now,
+          needs_reconnect: false,
+        };
+
+        // 7. Enregistrement ou mise à jour
+        const existing = await this.instagramRepository.findByInstagramId(igData.id);
+        if (existing) {
+          await this.instagramRepository.updateByInstagramId(igData.id, igPayload);
+        } else {
+          await this.instagramRepository.create(igPayload);
+        }
+
+        igAccountsFound++;
+      }
+
+      if (igAccountsFound === 0) {
+        return {
+          success: false,
+          message: 'Aucun compte Instagram autorisé trouvé ou lié à vos pages Facebook.',
+        };
+      }
+
+      return {
+        success: true,
+        message: `${igAccountsFound} compte(s) Instagram lié(s) avec succès.`,
+      };
+    } catch (error) {
+      console.error('Erreur lors de la liaison Facebook :', error?.response?.data || error.message);
+      throw error;
+    }
+  }
+
+    
+
+
 
   /**
    * Logged a user.

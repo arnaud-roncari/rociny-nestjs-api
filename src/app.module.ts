@@ -6,6 +6,10 @@ import { UserModule } from './modules/user/user.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { StripeService } from './modules/stripe/stripe.service';
 import { MinioService } from './modules/minio/minio.service';
+import { Email } from './modules/email/email.module';
+import { CollaborationModule } from './modules/collaboration/collaboration.module';
+import { ScheduleModule } from '@nestjs/schedule';
+
 
 @Module({
   imports: [
@@ -13,9 +17,12 @@ import { MinioService } from './modules/minio/minio.service';
       global: true,
       secret: process.env.JWT_SECRET,
     }),
+    ScheduleModule.forRoot(),
     CrashModule,
     UserModule,
+    Email,
     PolicyModule,
+    CollaborationModule,
   ],
   controllers: [],
   providers: [PostgresqlService, StripeService, MinioService],
