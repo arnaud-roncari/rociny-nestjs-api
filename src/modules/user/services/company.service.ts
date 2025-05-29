@@ -386,4 +386,45 @@ export class CompanyService {
 
     return ephemeralKey;
   }
+
+  async hasCompletedDocuments(userId: string): Promise<boolean> {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    const completed = await this.companyRepository.hasCompletedLegalDocuments(
+      company.id,
+      [LegalDocumentType.debug],
+    );
+    return completed;
+  }
+
+  async hasCompletedStripe(userId: string): Promise<boolean> {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    const completed = await this.stripeService.hasCardPaymentMethod(
+      company.stripeCustomerId,
+    );
+    return completed;
+  }
+
+  async createBillingPortalSession(userId: string): Promise<string> {
+    // Fetch the company to retrieve the Stripe customer ID
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      // If the company does not exist, throw an error
+      throw new UserNotFoundException();
+    }
+
+    // Create an Ephemeral Key for the specified Stripe customer
+    const url = await this.stripeService.createBillingPortalSession(
+      user.stripeCustomerId,
+    );
+
+    return url;
+  }
 }

@@ -268,4 +268,39 @@ export class CompanyRepository {
     const result = await this.postgresqlService.query(query, [companyId, type]);
     return result.length > 0 ? LegalDocumentEntity.fromJson(result[0]) : null;
   }
+
+  /**
+   * Checks if a user has submitted and had validated all required legal documents.
+   *
+   * @param userId - The ID of the company to check.
+   * @param requiredTypes - An array of required legal document types (enums).
+   *
+   * @returns A Promise that resolves to true if the user has submitted all required documents
+   *         with the status 'validated', otherwise false.
+   */
+  async hasCompletedLegalDocuments(
+    companyId: number,
+    requiredTypes: LegalDocumentType[],
+  ): Promise<boolean> {
+    if (requiredTypes.length === 0) {
+      return true;
+    }
+
+    const query = `
+      SELECT COUNT(DISTINCT type) AS count
+      FROM api.legal_documents
+      WHERE company_id = $1
+        AND status = 'validated'
+        AND type = ANY($2::text[])
+    `;
+
+    const result = await this.postgresqlService.query(query, [
+      companyId,
+      requiredTypes,
+    ]);
+
+    const count = parseInt(result[0]?.count ?? '0', 10);
+
+    return count === requiredTypes.length;
+  }
 }

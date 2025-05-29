@@ -35,6 +35,25 @@ export class StripeService implements OnModuleInit {
     return accountLink.url;
   }
 
+  async isAccountCompleted(stripeAccountId: string): Promise<boolean> {
+    const account =
+      await StripeService.stripe.accounts.retrieve(stripeAccountId);
+
+    return (
+      account.details_submitted === true &&
+      account.charges_enabled === true &&
+      account.payouts_enabled === true
+    );
+  }
+
+  async createLoginLink(accountId: string): Promise<string> {
+    const loginLink =
+      await StripeService.stripe.accounts.createLoginLink(accountId);
+    return loginLink.url;
+  }
+
+  // - - -
+
   async createCustomer(
     email: string,
   ): Promise<Stripe.Response<Stripe.Customer>> {
@@ -55,10 +74,40 @@ export class StripeService implements OnModuleInit {
     return setupIntent;
   }
 
+  /**
+   * Checks if the Stripe customer has at least one attached payment method of type 'card'.
+   *
+   * @param customerId - The Stripe customer ID.
+   * @returns true if the customer has at least one card payment method, false otherwise.
+   */
+  async hasCardPaymentMethod(customerId: string): Promise<boolean> {
+    const paymentMethods = await StripeService.stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card',
+    });
+
+    return paymentMethods.data.length > 0;
+  }
+
   async createEphemeralKey(customerId: string): Promise<Stripe.EphemeralKey> {
     return await StripeService.stripe.ephemeralKeys.create(
       { customer: customerId },
       { apiVersion: '2025-04-30.basil' },
     );
+  }
+
+  /**
+   * Creates a Stripe Customer Billing Portal session URL
+   * to allow the customer to manage their payment methods and billing.
+   *
+   * @param customerId - The Stripe customer ID
+   * @returns The URL string for the Stripe Billing Portal session
+   */
+  async createBillingPortalSession(customerId: string): Promise<string> {
+    const session = await StripeService.stripe.billingPortal.sessions.create({
+      customer: customerId,
+    });
+
+    return session.url;
   }
 }

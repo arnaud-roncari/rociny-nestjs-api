@@ -10,7 +10,6 @@ import { PlatformType } from 'src/commons/enums/platform_type';
 import { SocialNetworkEntity } from '../entities/social_network.entity';
 import { SocialNetworkExists } from 'src/commons/errors/social-network-already-exist';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
-import { LegalDocumentAlreadyExists } from 'src/commons/errors/legal-document-already-exist';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
 import { StripeService } from 'src/modules/stripe/stripe.service';
 
@@ -354,8 +353,9 @@ export class InfluencerService {
       influencer.id,
       type,
     );
+
     if (exists) {
-      throw new LegalDocumentAlreadyExists();
+      await this.deleteLegalDocument(userId, type);
     }
 
     const document = await this.minioService.uploadFile(file, BucketType.legal);
@@ -450,5 +450,66 @@ export class InfluencerService {
     );
 
     return url;
+  }
+  /**
+   * Generates a secure login link to the influencer's Stripe Express dashboard.
+   * This link allows the user to update their payout details, personal information,
+   * and view payment activity.
+   *
+   * @param userId - The ID of the user requesting the login link.
+   * @returns A URL to the Stripe Express dashboard.
+   * @throws UserNotFoundException - If the influencer does not exist in the database.
+   */
+  async createLoginLink(userId: string): Promise<string> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const url = await this.stripeService.createLoginLink(
+      influencer.stripeAccountId,
+    );
+
+    return url;
+  }
+
+  /**
+   * Checks whether the influencer has completed all required legal documents.
+   *
+   * @param userId - The ID of the user (influencer) to check.
+   * @returns `true` if all required documents have been submitted and validated, otherwise `false`.
+   * @throws `UserNotFoundException` if the influencer does not exist.
+   */
+  async hasCompletedDocuments(userId: string): Promise<boolean> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const completed =
+      await this.influencerRepository.hasCompletedLegalDocuments(
+        influencer.id,
+        [LegalDocumentType.debug],
+      );
+    return completed;
+  }
+
+  /**
+   * Checks whether the influencer has completed their Stripe onboarding process.
+   *
+   * @param userId - The ID of the user (influencer) to check.
+   * @returns `true` if the associated Stripe account is fully set up, otherwise `false`.
+   * @throws `UserNotFoundException` if the influencer does not exist.
+   */
+  async hasCompletedStripe(userId: string): Promise<boolean> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const completed = await this.stripeService.isAccountCompleted(
+      influencer.stripeAccountId,
+    );
+    return completed;
   }
 }

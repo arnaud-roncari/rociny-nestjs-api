@@ -21,6 +21,11 @@ import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { UserEntity } from '../entities/user.entity';
 import { UserAlreadyRegistering } from 'src/commons/errors/user-already-registering';
 import { UserAlreadyCompleted } from 'src/commons/errors/user-already-completed';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { InvalidAppleTokenException } from 'src/commons/errors/invalid-apple-token';
+import { UserUpdatingEmailEntity } from '../entities/user_updating_email.entity';
+import { UserAlreadyUpdatingEmail } from 'src/commons/errors/user-already-updating-email';
+import { EmailAlreadyUsed } from 'src/commons/errors/email-already-used';
 
 @Injectable()
 export class UserAuthService {
@@ -39,6 +44,13 @@ export class UserAuthService {
    */
   private readonly usersForgettingPassword: Array<UserForgettingPasswordEntity> =
     [];
+
+  /**
+   * A temporary in-memory list of users who are currently in the process
+   * of updating their email address. This is used to track the state of users
+   * who have initiated an email change but have not yet completed verification.
+   */
+  private readonly usersUpdatingEmail: Array<UserUpdatingEmailEntity> = [];
 
   /**
    * An instance of the OAuth2Client, used for verifying Google ID tokens.
@@ -136,7 +148,7 @@ export class UserAuthService {
     }
 
     // Add the user to the array of users pending validation (hashed password, generated code).
-    let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
+    const verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
     this.usersRegistering.push(
       new UserRegisteringEntity({
         email,
@@ -299,7 +311,7 @@ export class UserAuthService {
     }
 
     // Add the user to the array of users pending validation.
-    let verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
+    const verificationCode = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit code
     this.usersForgettingPassword.push(
       new UserForgettingPasswordEntity({
         email,
@@ -453,8 +465,10 @@ export class UserAuthService {
         providerUserId,
       );
 
+      const isNotCompleted = !user.accountType;
+
       // If it's a new user or missing account type, ask frontend to complete
-      if (isNew) {
+      if (isNew || isNotCompleted) {
         return {
           status: 'new',
           provider_user_id: providerUserId,
@@ -474,8 +488,83 @@ export class UserAuthService {
     };
   }
 
+  async loginWithApple(idToken: string): Promise<any> {
+    let payload: any;
+
+    // 1. Verify Apple token
+    try {
+      const JWKS = createRemoteJWKSet(
+        new URL('https://appleid.apple.com/auth/keys'),
+      );
+      const { payload: verifiedPayload } = await jwtVerify(idToken, JWKS, {
+        audience: process.env.APPLE_CLIENT_ID,
+        issuer: 'https://appleid.apple.com',
+      });
+      payload = verifiedPayload;
+    } catch (_) {
+      void _;
+      throw new InvalidAppleTokenException();
+    }
+
+    const providerUserId = payload.sub;
+    const email = payload.email;
+
+    // 2. Try to find existing OAuth user
+    const oauthUser = await this.userRepository.getOAuthUser(
+      'apple',
+      providerUserId,
+    );
+
+    let user: UserEntity | null = null;
+
+    if (oauthUser) {
+      user = await this.userRepository.getUserById(oauthUser.userId);
+
+      if (user.accountType === null) {
+        return {
+          status: 'new',
+          provider_user_id: providerUserId,
+        };
+      }
+    } else {
+      user = email ? await this.userRepository.getUserByEmail(email) : null;
+
+      const isNew = !user;
+
+      if (isNew) {
+        user = await this.userRepository.createUser(email ?? null, null, null);
+      }
+
+      await this.userRepository.createOAuthUser(
+        user.id,
+        'apple',
+        providerUserId,
+      );
+
+      const isNotCompleted = !user.accountType;
+
+      if (isNew || isNotCompleted) {
+        return {
+          status: 'new',
+          provider_user_id: providerUserId,
+        };
+      }
+    }
+
+    // 3. Generate JWT for frontend
+    const jwt = await this.jwtService.signAsync({
+      id: user.id,
+      account_type: user.accountType,
+    } as JwtContent);
+
+    return {
+      status: 'logged',
+      access_token: jwt,
+    };
+  }
+
   /**
-   * Completes the setup of a user who registered via Google OAuth but has not yet chosen an account type.
+   * Completes the setup of a user who registered via OAuth but has not yet chosen an account type.
    *
    * @param providerUserId - The unique ID from the OAuth provider (e.g., Google).
    * @param accountType - The account type to assign (influencer or company).
@@ -483,15 +572,13 @@ export class UserAuthService {
    * @throws UserNotFoundException - If no OAuth user is found with the given providerUserId.
    * @throws UserAlreadyCompleted - If the user already has an accountType set.
    */
-  async completeOAuthGoogleUser(
+  async completeOAuthUser(
     providerUserId: string,
     accountType: AccountType,
   ): Promise<any> {
-    // Find the OAuth user by Google provider ID
-    const oauthUser = await this.userRepository.getOAuthUser(
-      'google',
-      providerUserId,
-    );
+    // Find the OAuth user by provider ID
+    const oauthUser =
+      await this.userRepository.getOAuthUserByProviderId(providerUserId);
 
     if (!oauthUser) {
       throw new UserNotFoundException();
@@ -514,7 +601,183 @@ export class UserAuthService {
     // Generate and return a JWT
     return await this.jwtService.signAsync({
       id: user.id,
-      account_type: user.accountType,
+      account_type: accountType,
     } as JwtContent);
+  }
+
+  /**
+   * Checks whether a user is registered locally (i.e., has a local password).
+   *
+   * @param userId - The unique identifier of the user to check.
+   * @returns A promise that resolves to `true` if the user is locally registered, otherwise `false`.
+   *
+   * @throws {UserNotFoundException} - Thrown if no user is found with the given `userId`.
+   *
+   * A user is considered "locally registered" if their `passwordHash` field is not null or not an empty string.
+   */
+  async isRegisteredLocally(userId: string): Promise<boolean> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    if (user.passwordHash !== null && user.passwordHash !== '') {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Updates a user's password after verifying their current one.
+   *
+   * @param userId - The ID of the user whose password is being updated.
+   * @param password - The user's current password (plaintext).
+   * @param newPassword - The new password to set (plaintext).
+   *
+   * @throws UserNotFoundException - If no user is found with the given ID.
+   * @throws InvalidPasswordException - If the user was created via OAuth (no password set)
+   *                                    or if the current password is incorrect.
+   *
+   * This method:
+   * - Verifies the user exists.
+   * - Rejects users without a password (e.g., registered via Google/Apple).
+   * - Compares the current password with the stored hash using Argon2.
+   * - Hashes the new password and persists it.
+   */
+  async updatePassword(
+    userId: string,
+    password: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    // If user created from OAuth
+    if (!user.passwordHash) {
+      throw new InvalidPasswordException();
+    }
+
+    // Verify password (throw error if not matching)
+    const match = await argon2.verify(user.passwordHash, password);
+    if (!match) {
+      throw new InvalidPasswordException();
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.userRepository.updateUserPassword(userId, passwordHash);
+  }
+  /**
+   * Initiates the process to update a user's email address.
+   * Verifies the current password, checks if the email is available,
+   * generates a verification code, stores the pending update, and sends a verification email.
+   *
+   * @param userId - The ID of the user requesting the email change.
+   * @param password - The user's current password.
+   * @param newEmail - The new email address the user wants to set.
+   *
+   * @throws UserNotFoundException - If the user does not exist.
+   * @throws InvalidPasswordException - If the password is incorrect or user registered via OAuth.
+   * @throws UserAlreadyUpdatingEmail - If this email is already being used in a pending update.
+   * @throws EmailAlreadyUsed - If the email is already taken by another user.
+   */
+  async updateEmail(
+    userId: string,
+    password: string,
+    newEmail: string,
+  ): Promise<void> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) throw new UserNotFoundException();
+
+    if (!user.passwordHash) throw new InvalidPasswordException();
+
+    const match = await argon2.verify(user.passwordHash, password);
+    if (!match) throw new InvalidPasswordException();
+
+    const isEmailInUpdating = this.usersUpdatingEmail.some(
+      (user) => user.email === newEmail,
+    );
+    if (isEmailInUpdating) throw new UserAlreadyUpdatingEmail();
+
+    const isEmail = await this.userRepository.getUserByEmail(newEmail);
+    if (isEmail) throw new EmailAlreadyUsed();
+
+    const verificationCode = Math.floor(10000 + Math.random() * 90000);
+
+    this.usersUpdatingEmail.push(
+      new UserUpdatingEmailEntity({
+        email: newEmail,
+        verificationCode,
+      }),
+    );
+
+    setTimeout(
+      () => {
+        const index = this.usersUpdatingEmail.findIndex(
+          (user) => user.email === newEmail,
+        );
+        if (index !== -1) {
+          this.usersUpdatingEmail.splice(index, 1);
+        }
+      },
+      5 * 60 * 1000,
+    );
+
+    await this.emailService.sendEmail(newEmail, EmailTemplate.UPDATE_EMAIL, {
+      code: verificationCode,
+    });
+  }
+
+  /**
+   * Confirms the email change by validating the verification code.
+   * If valid, the user's email is updated and the pending request is removed.
+   *
+   * @param userId - The ID of the user.
+   * @param newEmail - The new email address to confirm.
+   * @param verificationCode - The code sent to the new email.
+   *
+   * @throws UserNotFoundException - If no pending email update is found.
+   * @throws InvalidCodeException - If the provided code doesn't match.
+   */
+  async verifyUpdateEmail(
+    userId: string,
+    newEmail: string,
+    verificationCode: number,
+  ): Promise<void> {
+    const user = this.usersUpdatingEmail.find(
+      (user) => user.email === newEmail,
+    );
+
+    if (!user) throw new UserNotFoundException();
+    if (user.verificationCode !== verificationCode)
+      throw new InvalidCodeException();
+
+    await this.userRepository.updateUserEmail(userId, newEmail);
+
+    this.usersUpdatingEmail.splice(this.usersUpdatingEmail.indexOf(user), 1);
+  }
+
+  /**
+   * Resends the verification code to confirm an email change.
+   *
+   * @param newEmail - The new email to which the verification code should be resent.
+   *
+   * @throws UserNotFoundException - If no pending email update is found for this email.
+   */
+  async resentUpdateEmailVerificationCode(newEmail: string): Promise<void> {
+    const user = this.usersUpdatingEmail.find(
+      (user) => user.email === newEmail,
+    );
+
+    if (!user) throw new UserNotFoundException();
+
+    await this.emailService.sendEmail(newEmail, EmailTemplate.UPDATE_EMAIL, {
+      code: user.verificationCode,
+    });
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.userRepository.deleteUserById(userId);
   }
 }

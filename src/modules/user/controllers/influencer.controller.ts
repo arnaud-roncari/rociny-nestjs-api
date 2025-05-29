@@ -347,4 +347,52 @@ export class InfluencerController {
 
     return { url: url };
   }
+
+  /**
+   * Checks if the influencer has completed all required legal documents.
+   *
+   * @param userId - Extracted from JWT, identifies the current user.
+   * @returns An object `{ has_completed: boolean }` indicating completion status.
+   *
+   * @route GET /has-completed/legal-documents
+   * @access Protected (requires valid JWT)
+   */
+  @ApiOperation({ summary: 'Check if influencer completed legal documents' })
+  @UseGuards(AuthGuard)
+  @Get('has-completed/legal-documents')
+  async hasCompletedLegalDocuments(@IdFromJWT() userId: string): Promise<any> {
+    const hasCompleted =
+      await this.influencerService.hasCompletedDocuments(userId);
+    return { has_completed: hasCompleted };
+  }
+
+  /**
+   * Checks if the influencer has completed their Stripe account setup.
+   *
+   * @param userId - Extracted from JWT, identifies the current user.
+   * @returns An object `{ has_completed: boolean }` indicating Stripe onboarding status.
+   *
+   * @route GET /has-completed/stripe
+   * @access Protected (requires valid JWT)
+   */
+  @ApiOperation({ summary: 'Check if influencer completed Stripe onboarding' })
+  @UseGuards(AuthGuard)
+  @Get('has-completed/stripe')
+  async hasCompletedStripe(@IdFromJWT() userId: string): Promise<any> {
+    const hasCompleted =
+      await this.influencerService.hasCompletedStripe(userId);
+    return { has_completed: hasCompleted };
+  }
+
+  @ApiOperation({
+    summary: 'Get Stripe Express dashboard link',
+    description: `Returns a short-lived login URL to the influencer's Stripe Express dashboard. 
+  This allows the user to manage their payout information and account settings directly on Stripe.`,
+  })
+  @UseGuards(AuthGuard)
+  @Get('stripe/login-link')
+  async getAccountSettingsLink(@IdFromJWT() userId: string) {
+    const url = await this.influencerService.createLoginLink(userId);
+    return { url };
+  }
 }

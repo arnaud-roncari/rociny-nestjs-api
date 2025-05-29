@@ -27,6 +27,8 @@ export class EmailService implements OnModuleInit {
     [EmailTemplate.RESET_PASSWORD]:
       'Votre code de réinitialisation de mot de passe - Rociny',
     [EmailTemplate.WELCOME]: 'Bienvenue sur Rociny',
+    [EmailTemplate.UPDATE_EMAIL]:
+      "Changement d'adresse e-mail - Code de vérification",
   };
 
   /**
@@ -69,12 +71,7 @@ export class EmailService implements OnModuleInit {
    * @returns Rendered HTML string
    */
   private compileTemplate(templateName: string, context: any) {
-    const filePath = path.join(
-      __dirname,
-      '..',
-      'templates',
-      `${templateName}.hbs`,
-    );
+    const filePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
     const templateContent = fs.readFileSync(filePath, 'utf-8');
     const compiledTemplate = handlebars.compile(templateContent);
     return compiledTemplate(context);

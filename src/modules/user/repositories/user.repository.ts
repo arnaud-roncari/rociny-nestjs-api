@@ -99,6 +99,21 @@ export class UserRepository {
   }
 
   /**
+   * Delete a user from the database by their user ID.
+   *
+   * @param userId - The unique identifier of the user to delete.
+   * @returns A Promise that resolves when the user has been deleted.
+   */
+  async deleteUserById(userId: string): Promise<void> {
+    const query = `
+    DELETE FROM api.users
+    WHERE id = $1
+  `;
+    const values = [userId];
+    await this.postgresqlService.query(query, values);
+  }
+
+  /**
    * Retrieves an OAuth user based on the provider and provider user ID.
    *
    * This function performs an SQL query to fetch an OAuth user from the `oauth_users` table
@@ -120,6 +135,21 @@ export class UserRepository {
     LIMIT 1
   `;
     const values = [provider, providerUserId];
+    const r = await this.postgresqlService.query(query, values);
+
+    return OAuthUserEntity.fromJson(r[0]);
+  }
+
+  async getOAuthUserByProviderId(
+    providerUserId: string,
+  ): Promise<OAuthUserEntity | null> {
+    const query = `
+    SELECT * 
+    FROM api.oauth_users
+    WHERE provider_user_id = $1
+    LIMIT 1
+  `;
+    const values = [providerUserId];
     const r = await this.postgresqlService.query(query, values);
 
     return OAuthUserEntity.fromJson(r[0]);
@@ -150,5 +180,35 @@ export class UserRepository {
     const r = await this.postgresqlService.query(query, values);
 
     return OAuthUserEntity.fromJson(r[0]);
+  }
+
+  /**
+   * Update a user's password hash.
+   * @param id - The user's id.
+   * @param passwordHash - The new hashed password.
+   */
+  async updateUserPassword(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void> {
+    const query = `
+    UPDATE api.users
+    SET password_hash = $1
+    WHERE id = $2
+  `;
+    await this.postgresqlService.query(query, [passwordHash, userId]);
+  }
+  /**
+   * Update a user's email.
+   * @param id - The user's id.
+   * @param email - The new email.
+   */
+  async updateUserEmail(userId: string, email: string): Promise<void> {
+    const query = `
+    UPDATE api.users
+    SET email = $1
+    WHERE id = $2
+  `;
+    await this.postgresqlService.query(query, [email, userId]);
   }
 }

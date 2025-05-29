@@ -266,4 +266,29 @@ export class CompanyController {
       customer_id: company.stripeCustomerId,
     };
   }
+
+  @ApiOperation({ summary: 'Check if influencer completed legal documents' })
+  @UseGuards(AuthGuard)
+  @Get('has-completed/legal-documents')
+  async hasCompletedLegalDocuments(@IdFromJWT() userId: string): Promise<any> {
+    const hasCompleted =
+      await this.companyService.hasCompletedDocuments(userId);
+    return { has_completed: hasCompleted };
+  }
+
+  @ApiOperation({ summary: 'Check if influencer completed Stripe onboarding' })
+  @UseGuards(AuthGuard)
+  @Get('has-completed/stripe')
+  async hasCompletedStripe(@IdFromJWT() userId: string): Promise<any> {
+    const hasCompleted = await this.companyService.hasCompletedStripe(userId);
+    return { has_completed: hasCompleted };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @Get('stripe/billing-portal-session')
+  async getAccountSettingsLink(@IdFromJWT() userId: string) {
+    const url = await this.companyService.createBillingPortalSession(userId);
+    return { url };
+  }
 }

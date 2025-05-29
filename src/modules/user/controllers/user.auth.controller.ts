@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  UseGuards,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { LoggedDto } from '../dtos/logged.dto';
@@ -10,6 +19,12 @@ import { ForgotPasswordDto } from '../dtos/forgot-password.dto';
 import { VerifyForgotPasswordDto } from '../dtos/verify-forgot-password.dto';
 import { ResentForgotPasswordVerificationCodeDto } from '../dtos/resent-forgot-password-verification-code';
 import { CompleteOAuthGoogleUserDto } from '../dtos/complete-oauth-google-user.dto';
+import { AuthGuard } from 'src/commons/guards/auth.guard';
+import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
+import { UpdatePasswordDto } from '../dtos/update-password.dto';
+import { UpdateEmailDto } from '../dtos/update-email.dto';
+import { VerifyUpdateEmailDto } from '../dtos/verify-update-email.dto';
+import { ResentUpdateEmailVerificationCodeDto } from '../dtos/resent-update-email-verification-code';
 
 @Controller('user/auth')
 export class UserAuthController {
@@ -101,14 +116,87 @@ export class UserAuthController {
 
   @ApiOperation({})
   @ApiResponse({})
-  @Post('complete-oauth-google-user')
-  async completeOAuthGoogleUser(
+  @Get('login-with-apple/:id_token')
+  async loginWithApple(@Param('id_token') idToken: string): Promise<any> {
+    const map = await this.authService.loginWithApple(idToken);
+    return map;
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @Post('complete-oauth-user')
+  async completeOAuthUser(
     @Body() dto: CompleteOAuthGoogleUserDto,
   ): Promise<any> {
-    const jwt = await this.authService.completeOAuthGoogleUser(
+    const jwt = await this.authService.completeOAuthUser(
       dto.provider_user_id,
       dto.account_type,
     );
     return { access_token: jwt };
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Get('is-registered-locally')
+  async isRegisteredLocally(@IdFromJWT() userId: string): Promise<any> {
+    const isRegisteredLocally =
+      await this.authService.isRegisteredLocally(userId);
+    return { is_registered_locally: isRegisteredLocally };
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Put('update-password')
+  async updatePassword(
+    @IdFromJWT() userId: string,
+    @Body() dto: UpdatePasswordDto,
+  ): Promise<void> {
+    const { password, new_password } = dto;
+    await this.authService.updatePassword(userId, password, new_password);
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Post('update-email')
+  async updateEmail(
+    @IdFromJWT() userId: string,
+    @Body() dto: UpdateEmailDto,
+  ): Promise<void> {
+    const { new_email, password } = dto;
+    await this.authService.updateEmail(userId, password, new_email);
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Post('update-email/verify')
+  async verifyUpdateEmail(
+    @IdFromJWT() userId: string,
+    @Body() dto: VerifyUpdateEmailDto,
+  ): Promise<void> {
+    const { new_email, code } = dto;
+    await this.authService.verifyUpdateEmail(userId, new_email, code);
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Post('update-email/resent-verification-code')
+  async resentUpdateEmailVerificationCode(
+    @Body() dto: ResentUpdateEmailVerificationCodeDto,
+  ): Promise<void> {
+    const { new_email } = dto;
+    await this.authService.resentUpdateEmailVerificationCode(new_email);
+  }
+
+  @ApiOperation({})
+  @ApiResponse({})
+  @UseGuards(AuthGuard)
+  @Delete('delete-user')
+  async deleteUser(@IdFromJWT() userId: string): Promise<void> {
+    await this.authService.deleteUser(userId);
   }
 }
