@@ -3,6 +3,8 @@ export class OAuthUserEntity {
   userId: string;
   provider: string;
   providerUserId: string;
+  accessToken: string;
+  tokenExpiration: Date;
 
   constructor(parameters: OAuthUserEntity) {
     Object.assign(this, parameters);
@@ -18,6 +20,10 @@ export class OAuthUserEntity {
       userId: json.user_id,
       provider: json.provider,
       providerUserId: json.provider_user_id,
+      accessToken: json.access_token,
+      tokenExpiration: json.token_expiration
+        ? new Date(json.token_expiration)
+        : null,
     });
   }
 

@@ -7,6 +7,8 @@ import {
   UseGuards,
   Put,
   Delete,
+  Res,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
@@ -25,10 +27,18 @@ import { UpdatePasswordDto } from '../dtos/update-password.dto';
 import { UpdateEmailDto } from '../dtos/update-email.dto';
 import { VerifyUpdateEmailDto } from '../dtos/verify-update-email.dto';
 import { ResentUpdateEmailVerificationCodeDto } from '../dtos/resent-update-email-verification-code';
+import { Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { FacebookService } from 'src/modules/facebook/facebook.service';
+import { FetchedInstagramAccountDto } from 'src/modules/facebook/dtos/fetched_instagram_account.dto';
 
 @Controller('user/auth')
 export class UserAuthController {
-  constructor(private readonly authService: UserAuthService) {}
+  constructor(
+    private readonly authService: UserAuthService,
+    private readonly jwtService: JwtService,
+    private readonly facebookService: FacebookService,
+  ) {}
 
   /**
    * Handle POST requests to log a user.
@@ -198,5 +208,57 @@ export class UserAuthController {
   @Delete('delete-user')
   async deleteUser(@IdFromJWT() userId: string): Promise<void> {
     await this.authService.deleteUser(userId);
+  }
+
+  @Get('login-with-facebook')
+  async loginWithFacebook(
+    @Query('code') code: string,
+    @Query('state') token: string,
+    @Res() res: Response,
+  ) {
+    const payload = this.jwtService.verify(token);
+    await this.authService.loginWithFacebook(payload['id'], code);
+    const deeplink = `rociny://facebook`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <script>
+            window.location.href = '${deeplink}';
+          </script>
+        </head>
+      </html>
+    `;
+
+    res.status(200).send(html);
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('facebook/instagram-accounts')
+  async getInstagramAccounts(
+    @IdFromJWT() userId: string,
+  ): Promise<FetchedInstagramAccountDto[]> {
+    const ia = await this.facebookService.getInstagramAccounts(userId);
+    return FetchedInstagramAccountDto.fromEntities(ia);
+  }
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('facebook/has-session')
+  async hasFacebookSession(@IdFromJWT() userId: string): Promise<any> {
+    const hasSession = await this.facebookService.hasFacebookSession(userId);
+    return { has_session: hasSession };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Delete('facebook/logout')
+  async logoutFacebook(@IdFromJWT() userId: string): Promise<void> {
+    await this.authService.deleteOauth(userId, 'facebook');
+    await this.facebookService.deleteInstagramAccount(userId);
   }
 }

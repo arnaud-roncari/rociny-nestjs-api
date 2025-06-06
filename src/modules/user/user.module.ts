@@ -12,6 +12,8 @@ import { StripeService } from '../stripe/stripe.service';
 import { CompanyService } from './services/company.service';
 import { CompanyController } from './controllers/company.controller';
 import { EmailService } from '../email/email.service';
+import { FacebookRepository } from '../facebook/facebook.repository';
+import { FacebookService } from '../facebook/facebook.service';
 
 @Module({
   providers: [
@@ -26,6 +28,8 @@ import { EmailService } from '../email/email.service';
     CompanyRepository,
     CompanyService,
     EmailService,
+    FacebookRepository,
+    FacebookService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

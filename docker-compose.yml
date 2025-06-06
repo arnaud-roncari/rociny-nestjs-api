@@ -31,6 +31,9 @@ services:
       - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
       - GMAIL_REFRESH_TOKEN=${GMAIL_REFRESH_TOKEN}
       - GMAIL_USER=${GMAIL_USER}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+      - ENDPOINT=${ENDPOINT}
     depends_on:
       - rociny-postgres
       - rociny-minio

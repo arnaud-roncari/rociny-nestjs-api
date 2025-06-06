@@ -140,6 +140,24 @@ export class UserRepository {
     return OAuthUserEntity.fromJson(r[0]);
   }
 
+  async getOAuthUserByUserId(
+    provider: string,
+    userId: string,
+  ): Promise<OAuthUserEntity | null> {
+    const query = `
+      SELECT * 
+      FROM api.oauth_users
+      WHERE user_id = $1 AND provider = $2
+      LIMIT 1
+    `;
+    const values = [userId, provider];
+    const r = await this.postgresqlService.query(query, values);
+
+    if (r.length === 0) return null;
+
+    return OAuthUserEntity.fromJson(r[0]);
+  }
+
   async getOAuthUserByProviderId(
     providerUserId: string,
   ): Promise<OAuthUserEntity | null> {
@@ -169,17 +187,42 @@ export class UserRepository {
   async createOAuthUser(
     userId: number,
     provider: string,
-    providerUserId: string,
+    providerUserId: string | null,
+    accessToken: string | null,
+    tokenExpiration: Date | null,
   ): Promise<OAuthUserEntity> {
     const query = `
-    INSERT INTO api.oauth_users (user_id, provider, provider_user_id)
-    VALUES ($1, $2, $3)
+    INSERT INTO api.oauth_users (user_id, provider, provider_user_id, access_token, token_expiration)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *;
   `;
-    const values = [userId, provider, providerUserId];
+    const values = [
+      userId,
+      provider,
+      providerUserId,
+      accessToken,
+      tokenExpiration,
+    ];
     const r = await this.postgresqlService.query(query, values);
 
     return OAuthUserEntity.fromJson(r[0]);
+  }
+
+  async updateOAuthToken(
+    userId: number,
+    provider: string,
+    accessToken: string,
+    tokenExpiration: Date,
+  ): Promise<void> {
+    const query = `
+      UPDATE api.oauth_users
+      SET access_token = $1,
+          token_expiration = $2
+      WHERE user_id = $3 AND provider = $4
+    `;
+
+    const values = [accessToken, tokenExpiration, userId, provider];
+    await this.postgresqlService.query(query, values);
   }
 
   /**
@@ -210,5 +253,18 @@ export class UserRepository {
     WHERE id = $2
   `;
     await this.postgresqlService.query(query, [email, userId]);
+  }
+
+  /**
+   * Delete an OAuth user record by its ID.
+   * @param oauthId - The ID of the OAuth record.
+   */
+  async deleteOAuthUserById(oauthId: number): Promise<void> {
+    const query = `
+    DELETE FROM api.oauth_users
+    WHERE id = $1
+  `;
+
+    await this.postgresqlService.query(query, [oauthId]);
   }
 }

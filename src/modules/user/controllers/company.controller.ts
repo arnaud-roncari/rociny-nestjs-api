@@ -11,7 +11,7 @@ import {
   Post,
   Delete,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfilePictureUpdatedDto } from '../dtos/profile-picture-updated.dto';
 import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
@@ -24,10 +24,15 @@ import { SocialNetworkDto } from '../dtos/social-network.dto';
 import { UpdateSocialNetworkDto } from '../dtos/update-social-network.dto';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { CompanyService } from '../services/company.service';
+import { FacebookService } from 'src/modules/facebook/facebook.service';
+import { InstagramAccountDto } from 'src/modules/facebook/dtos/instagram_account.dto';
 
 @Controller('company')
 export class CompanyController {
-  constructor(private readonly companyService: CompanyService) {}
+  constructor(
+    private readonly companyService: CompanyService,
+    private readonly facebookService: FacebookService,
+  ) {}
 
   /**
    * Updates the profile picture of the currently authenticated user.
@@ -290,5 +295,41 @@ export class CompanyController {
   async getAccountSettingsLink(@IdFromJWT() userId: string) {
     const url = await this.companyService.createBillingPortalSession(userId);
     return { url };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('has-instagram-account')
+  async hasInstagramAccount(@IdFromJWT() userId: string): Promise<any> {
+    const hasInstagramAccount =
+      await this.facebookService.hasInstagramAccount(userId);
+    return { has_instagram_account: hasInstagramAccount };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('instagram')
+  async getInstagramAccount(
+    @IdFromJWT() userId: string,
+  ): Promise<InstagramAccountDto> {
+    const instagramAccount =
+      await this.facebookService.getInstagramAccount(userId);
+    return InstagramAccountDto.fromEntity(instagramAccount);
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('instagram/:fetched_instagram_account_id')
+  async createInstagramAccount(
+    @IdFromJWT() userId: string,
+    @Param('fetched_instagram_account_id') fetchedInstagramAccountId: string,
+  ): Promise<void> {
+    await this.facebookService.createInstagramAccount(
+      userId,
+      fetchedInstagramAccountId,
+    );
   }
 }

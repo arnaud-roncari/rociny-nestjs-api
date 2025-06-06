@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { StripeService } from './modules/stripe/stripe.service';
 import { MinioService } from './modules/minio/minio.service';
+import { FacebookModule } from './modules/facebook/facebook.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MinioService } from './modules/minio/minio.service';
     CrashModule,
     UserModule,
     PolicyModule,
+    FacebookModule,
   ],
   controllers: [],
   providers: [PostgresqlService, StripeService, MinioService],

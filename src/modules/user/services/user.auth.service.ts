@@ -26,6 +26,7 @@ import { InvalidAppleTokenException } from 'src/commons/errors/invalid-apple-tok
 import { UserUpdatingEmailEntity } from '../entities/user_updating_email.entity';
 import { UserAlreadyUpdatingEmail } from 'src/commons/errors/user-already-updating-email';
 import { EmailAlreadyUsed } from 'src/commons/errors/email-already-used';
+import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
 
 @Injectable()
 export class UserAuthService {
@@ -73,6 +74,7 @@ export class UserAuthService {
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly stripeService: StripeService,
+    private readonly facebookRepository: FacebookRepository,
   ) {}
 
   async onModuleInit() {
@@ -463,6 +465,8 @@ export class UserAuthService {
         user.id,
         'google',
         providerUserId,
+        null,
+        null,
       );
 
       const isNotCompleted = !user.accountType;
@@ -539,6 +543,8 @@ export class UserAuthService {
         user.id,
         'apple',
         providerUserId,
+        null,
+        null,
       );
 
       const isNotCompleted = !user.accountType;
@@ -779,5 +785,60 @@ export class UserAuthService {
 
   async deleteUser(userId: string): Promise<void> {
     await this.userRepository.deleteUserById(userId);
+  }
+
+  async deleteOauth(userId: string, provider: string): Promise<void> {
+    const oauth = await this.userRepository.getOAuthUserByUserId(
+      provider,
+      userId,
+    );
+    await this.userRepository.deleteOAuthUserById(oauth.id);
+  }
+
+  async loginWithFacebook(userId: string, code: string): Promise<void> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    // Convert the code to a long-lived token
+    const shortToken =
+      await this.facebookRepository.exchangeCodeForShortLivedToken(code);
+    const longToken =
+      await this.facebookRepository.exchangeShortForLongLivedToken(shortToken);
+
+    // Get the user ID from the long-lived token
+    const providerUserId =
+      await this.facebookRepository.getFacebookId(longToken);
+
+    // Set expiration date for the token
+    // Facebook long-lived tokens are valid for 60 days, so we set it to 59 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 59);
+
+    // Check if the user already has an OAuth user linked to their account
+    const oauthUser = await this.userRepository.getOAuthUserByUserId(
+      'facebook',
+      userId,
+    );
+
+    // If the user already has an OAuth user, update the token
+    if (oauthUser) {
+      await this.userRepository.updateOAuthToken(
+        user.id,
+        'facebook',
+        longToken,
+        expiresAt,
+      );
+      // If the user does not have an OAuth user, create a new one
+    } else {
+      await this.userRepository.createOAuthUser(
+        user.id,
+        'facebook',
+        providerUserId,
+        longToken,
+        expiresAt,
+      );
+    }
   }
 }
