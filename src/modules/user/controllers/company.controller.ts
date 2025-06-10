@@ -26,6 +26,8 @@ import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { CompanyService } from '../services/company.service';
 import { FacebookService } from 'src/modules/facebook/facebook.service';
 import { InstagramAccountDto } from 'src/modules/facebook/dtos/instagram_account.dto';
+import { CompanyProfileCompletionStatusDto } from '../dtos/company-profile-completion-status.dto';
+import { CompanyDto } from '../dtos/company.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -331,5 +333,35 @@ export class CompanyController {
       userId,
       fetchedInstagramAccountId,
     );
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('get-profile-completion-status')
+  async getProfileCompletionStatus(
+    @IdFromJWT() userId: string,
+  ): Promise<CompanyProfileCompletionStatusDto> {
+    let e = await this.companyService.getProfileCompletionStatus(userId);
+    return CompanyProfileCompletionStatusDto.fromEntity(e);
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('has-completed-profile')
+  async hasCompletedProfile(@IdFromJWT() userId: string): Promise<any> {
+    let hasCompletedProfile =
+      await this.companyService.hasCompletedProfile(userId);
+    return { has_completed_profile: hasCompletedProfile };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get()
+  async getCompany(@IdFromJWT() userId: string): Promise<CompanyDto> {
+    let company = await this.companyService.getCompany(userId);
+    return CompanyDto.fromEntity(company);
   }
 }

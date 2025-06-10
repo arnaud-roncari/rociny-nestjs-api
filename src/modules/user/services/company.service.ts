@@ -14,11 +14,14 @@ import { CompanyRepository } from '../repositories/company.repository';
 import { StripeService } from 'src/modules/stripe/stripe.service';
 import { CompanyEntity } from '../entities/company.entity';
 import Stripe from 'stripe';
+import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
+import { CompanyProfileCompletionStatusEntity } from '../entities/company_profile_completion_status.entity';
 
 @Injectable()
 export class CompanyService {
   constructor(
     private readonly companyRepository: CompanyRepository,
+    private readonly facebookRepository: FacebookRepository,
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
   ) {}
@@ -426,5 +429,60 @@ export class CompanyService {
     );
 
     return url;
+  }
+
+  async hasCompletedInstagram(userId: string): Promise<any> {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    let oauth = await this.facebookRepository.getInstagramAccount(userId);
+
+    if (!oauth) {
+      return false;
+    }
+    return true;
+  }
+
+  async getProfileCompletionStatus(
+    userId: string,
+  ): Promise<CompanyProfileCompletionStatusEntity> {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    const socialNetworks = await this.companyRepository.getSocialNetworks(
+      company.id,
+    );
+
+    const profileCompletionStatus = new CompanyProfileCompletionStatusEntity({
+      hasProfilePicture: !!company.profilePicture,
+      hasName: !!company.name,
+      hasDescription: !!company.description,
+      hasDepartment: !!company.department,
+      hasSocialNetworks: socialNetworks.length > 0,
+      hasLegalDocuments: await this.hasCompletedDocuments(userId),
+      hasStripePaymentMethod: await this.hasCompletedStripe(userId),
+      hasInstagramAccount: await this.hasCompletedInstagram(userId),
+    });
+
+    return profileCompletionStatus;
+  }
+
+  async hasCompletedProfile(userId: string): Promise<boolean> {
+    const profileCompletionStatus =
+      await this.getProfileCompletionStatus(userId);
+    return (
+      profileCompletionStatus.hasProfilePicture &&
+      profileCompletionStatus.hasName &&
+      profileCompletionStatus.hasDescription &&
+      profileCompletionStatus.hasDepartment &&
+      profileCompletionStatus.hasSocialNetworks &&
+      profileCompletionStatus.hasLegalDocuments &&
+      profileCompletionStatus.hasStripePaymentMethod &&
+      profileCompletionStatus.hasInstagramAccount
+    );
   }
 }
