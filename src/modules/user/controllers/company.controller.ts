@@ -362,6 +362,8 @@ export class CompanyController {
   @Get()
   async getCompany(@IdFromJWT() userId: string): Promise<CompanyDto> {
     let company = await this.companyService.getCompany(userId);
-    return CompanyDto.fromEntity(company);
+    let socialNetworks = await this.companyService.getSocialNetworks(userId);
+    /// Add statistics
+    return CompanyDto.fromEntity(company, socialNetworks);
   }
 }
