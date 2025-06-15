@@ -12,6 +12,9 @@ import { SocialNetworkExists } from 'src/commons/errors/social-network-already-e
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
 import { StripeService } from 'src/modules/stripe/stripe.service';
+import { InfluencerEntity } from '../entities/influencer.entity';
+import { InfluencerProfileCompletionStatusEntity } from '../entities/influencer_profile_completion_status.entity';
+import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
 
 @Injectable()
 export class InfluencerService {
@@ -19,6 +22,7 @@ export class InfluencerService {
     private readonly influencerRepository: InfluencerRepository,
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
+    private readonly facebookRepository: FacebookRepository,
   ) {}
 
   /**
@@ -511,5 +515,79 @@ export class InfluencerService {
       influencer.stripeAccountId,
     );
     return completed;
+  }
+
+  async getInfluencer(userId: string): Promise<InfluencerEntity> {
+    const user = await this.influencerRepository.getInfluencer(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    return user;
+  }
+
+  async hasCompletedInstagram(userId: string): Promise<any> {
+    const company = await this.influencerRepository.getInfluencer(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    let oauth = await this.facebookRepository.getInstagramAccount(userId);
+
+    if (!oauth) {
+      return false;
+    }
+    return true;
+  }
+
+  async getProfileCompletionStatus(
+    userId: string,
+  ): Promise<InfluencerProfileCompletionStatusEntity> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    const socialNetworks = await this.influencerRepository.getSocialNetworks(
+      influencer.id,
+    );
+
+    const profileCompletionStatus = new InfluencerProfileCompletionStatusEntity(
+      {
+        hasProfilePicture: !!influencer.profilePicture,
+        hasPortfolio: influencer.portfolio.length > 0,
+        hasName: !!influencer.name,
+        hasDescription: !!influencer.description,
+        hasDepartment: !!influencer.department,
+        hasSocialNetworks: socialNetworks.length > 0,
+        hasThemes: influencer.themes.length > 0,
+        hasTargetAudience: influencer.targetAudience.length > 0,
+        hasLegalDocuments: await this.hasCompletedDocuments(userId),
+        hasStripeCompleted: await this.stripeService.isAccountCompleted(
+          influencer.stripeAccountId,
+        ),
+        hasInstagramAccount: await this.hasCompletedInstagram(userId),
+      },
+    );
+
+    return profileCompletionStatus;
+  }
+
+  async hasCompletedProfile(userId: string): Promise<boolean> {
+    const profileCompletionStatus =
+      await this.getProfileCompletionStatus(userId);
+    return (
+      profileCompletionStatus.hasProfilePicture &&
+      profileCompletionStatus.hasName &&
+      profileCompletionStatus.hasDescription &&
+      profileCompletionStatus.hasDepartment &&
+      profileCompletionStatus.hasSocialNetworks &&
+      profileCompletionStatus.hasLegalDocuments &&
+      profileCompletionStatus.hasPortfolio &&
+      profileCompletionStatus.hasThemes &&
+      profileCompletionStatus.hasTargetAudience &&
+      profileCompletionStatus.hasStripeCompleted &&
+      profileCompletionStatus.hasInstagramAccount
+    );
   }
 }

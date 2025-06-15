@@ -30,6 +30,8 @@ import { UpdateSocialNetworkDto } from '../dtos/update-social-network.dto';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { InstagramAccountDto } from 'src/modules/facebook/dtos/instagram_account.dto';
 import { FacebookService } from 'src/modules/facebook/facebook.service';
+import { InfluencerDto } from '../dtos/influencer.dto';
+import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -435,5 +437,37 @@ export class InfluencerController {
       userId,
       fetchedInstagramAccountId,
     );
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('has-completed-profile')
+  async hasCompletedProfile(@IdFromJWT() userId: string): Promise<any> {
+    let hasCompletedProfile =
+      await this.influencerService.hasCompletedProfile(userId);
+    return { has_completed_profile: hasCompletedProfile };
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get()
+  async getCompany(@IdFromJWT() userId: string): Promise<InfluencerDto> {
+    let influencer = await this.influencerService.getInfluencer(userId);
+    let socialNetworks = await this.influencerService.getSocialNetworks(userId);
+    /// Add statistics
+    return InfluencerDto.fromEntity(influencer, socialNetworks);
+  }
+
+  @ApiOperation({})
+  @UseGuards(AuthGuard)
+  @ApiResponse({})
+  @Get('get-profile-completion-status')
+  async getProfileCompletionStatus(
+    @IdFromJWT() userId: string,
+  ): Promise<InfluencerProfileCompletionStatusDto> {
+    let e = await this.influencerService.getProfileCompletionStatus(userId);
+    return InfluencerProfileCompletionStatusDto.fromEntity(e);
   }
 }
