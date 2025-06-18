@@ -81,6 +81,54 @@ export class InfluencerRepository {
   }
 
   /**
+   * Add multiple photos to the portfolio of an influencer.
+   * @param userId - The user's id.
+   * @param newPictures - An array of photo URLs to add.
+   */
+  async addPicturesToPortfolio(
+    userId: string,
+    newPictures: string[],
+  ): Promise<void> {
+    const result = await this.postgresqlService.query(
+      `SELECT portfolio FROM api.influencers WHERE user_id = $1`,
+      [userId],
+    );
+
+    const currentPortfolio: string[] = result[0]?.portfolio || [];
+    const updatedPortfolio = [...currentPortfolio, ...newPictures];
+
+    await this.postgresqlService.query(
+      `UPDATE api.influencers SET portfolio = $1 WHERE user_id = $2`,
+      [updatedPortfolio, userId],
+    );
+  }
+
+  /**
+   * Remove a photo from the portfolio of an influencer.
+   * @param userId - The user's id.
+   * @param pictureUrl - The exact photo URL to remove.
+   */
+  async removePictureFromPortfolio(
+    userId: string,
+    pictureUrl: string,
+  ): Promise<void> {
+    const result = await this.postgresqlService.query(
+      `SELECT portfolio FROM api.influencers WHERE user_id = $1`,
+      [userId],
+    );
+
+    const currentPortfolio: string[] = result[0]?.portfolio || [];
+    const updatedPortfolio = currentPortfolio.filter(
+      (photo) => photo !== pictureUrl,
+    );
+
+    await this.postgresqlService.query(
+      `UPDATE api.influencers SET portfolio = $1 WHERE user_id = $2`,
+      [updatedPortfolio, userId],
+    );
+  }
+
+  /**
    * Update the name of an influencer.
    * @param userId - The user's id.
    * @param name - The new name.

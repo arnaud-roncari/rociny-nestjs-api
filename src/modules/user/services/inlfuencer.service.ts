@@ -135,6 +135,45 @@ export class InfluencerService {
     return newPortfolio;
   }
 
+  async addPicturesToPortfolio(
+    userId: string,
+    files: Express.Multer.File[],
+  ): Promise<void> {
+    if (!files || files.length === 0) {
+      throw new FileRequiredException();
+    }
+
+    const user = await this.influencerRepository.getInfluencer(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    const newPictures = await Promise.all(
+      files.map((file) =>
+        this.minioService.uploadFile(file, BucketType.portfolios),
+      ),
+    );
+
+    await this.influencerRepository.addPicturesToPortfolio(userId, newPictures);
+  }
+
+  async removePictureFromPortfolio(
+    userId: string,
+    pictureUrl: string,
+  ): Promise<void> {
+    const user = await this.influencerRepository.getInfluencer(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.influencerRepository.removePictureFromPortfolio(
+      userId,
+      pictureUrl,
+    );
+
+    await this.minioService.removeFile(BucketType.portfolios, pictureUrl);
+  }
+
   /**
    * Retrieves a specific portfolio file for a user by its name.
    *

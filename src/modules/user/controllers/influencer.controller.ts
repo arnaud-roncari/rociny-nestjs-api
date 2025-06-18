@@ -99,6 +99,25 @@ export class InfluencerController {
     return new PortfolioUpdatedDto(newPortfolio);
   }
 
+  @UseInterceptors(FilesInterceptor('files'))
+  @UseGuards(AuthGuard)
+  @Put('add-pictures-to-portfolio')
+  async AddPicturesToPortfolio(
+    @UploadedFiles() files: Express.Multer.File[],
+    @IdFromJWT() userId: string,
+  ): Promise<any> {
+    await this.influencerService.addPicturesToPortfolio(userId, files);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('remove-picture-from-portfolio/:picture_url')
+  async RemovePictureFromPortfolio(
+    @IdFromJWT() userId: string,
+    @Param('picture_url') pictureUrl: string,
+  ): Promise<any> {
+    await this.influencerService.removePictureFromPortfolio(userId, pictureUrl);
+  }
+
   /**
    * Retrieves a specific portfolio file of the currently authenticated user.
    *
