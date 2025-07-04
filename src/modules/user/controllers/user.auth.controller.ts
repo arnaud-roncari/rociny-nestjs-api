@@ -149,7 +149,7 @@ export class UserAuthController {
   @ApiResponse({})
   @UseGuards(AuthGuard)
   @Get('is-registered-locally')
-  async isRegisteredLocally(@IdFromJWT() userId: string): Promise<any> {
+  async isRegisteredLocally(@IdFromJWT() userId: number): Promise<any> {
     const isRegisteredLocally =
       await this.authService.isRegisteredLocally(userId);
     return { is_registered_locally: isRegisteredLocally };
@@ -160,7 +160,7 @@ export class UserAuthController {
   @UseGuards(AuthGuard)
   @Put('update-password')
   async updatePassword(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() dto: UpdatePasswordDto,
   ): Promise<void> {
     const { password, new_password } = dto;
@@ -172,7 +172,7 @@ export class UserAuthController {
   @UseGuards(AuthGuard)
   @Post('update-email')
   async updateEmail(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() dto: UpdateEmailDto,
   ): Promise<void> {
     const { new_email, password } = dto;
@@ -184,7 +184,7 @@ export class UserAuthController {
   @UseGuards(AuthGuard)
   @Post('update-email/verify')
   async verifyUpdateEmail(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() dto: VerifyUpdateEmailDto,
   ): Promise<void> {
     const { new_email, code } = dto;
@@ -206,7 +206,7 @@ export class UserAuthController {
   @ApiResponse({})
   @UseGuards(AuthGuard)
   @Delete('delete-user')
-  async deleteUser(@IdFromJWT() userId: string): Promise<void> {
+  async deleteUser(@IdFromJWT() userId: number): Promise<void> {
     await this.authService.deleteUser(userId);
   }
 
@@ -239,7 +239,7 @@ export class UserAuthController {
   @ApiResponse({})
   @Get('facebook/instagram-accounts')
   async getInstagramAccounts(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<FetchedInstagramAccountDto[]> {
     const ia = await this.facebookService.getInstagramAccounts(userId);
     return FetchedInstagramAccountDto.fromEntities(ia);
@@ -248,7 +248,7 @@ export class UserAuthController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get('facebook/has-session')
-  async hasFacebookSession(@IdFromJWT() userId: string): Promise<any> {
+  async hasFacebookSession(@IdFromJWT() userId: number): Promise<any> {
     const hasSession = await this.facebookService.hasFacebookSession(userId);
     return { has_session: hasSession };
   }
@@ -257,7 +257,7 @@ export class UserAuthController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Delete('facebook/logout')
-  async logoutFacebook(@IdFromJWT() userId: string): Promise<void> {
+  async logoutFacebook(@IdFromJWT() userId: number): Promise<void> {
     await this.authService.deleteOauth(userId, 'facebook');
     await this.facebookService.deleteInstagramAccount(userId);
   }

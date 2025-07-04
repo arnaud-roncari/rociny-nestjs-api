@@ -50,7 +50,7 @@ export class CompanyController {
   @Put('update-profile-picture')
   async updateProfilePicture(
     @UploadedFile() file: Express.Multer.File,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<ProfilePictureUpdatedDto> {
     const newProfilePicture: string =
       await this.companyService.updateProfilePicture(userId, file);
@@ -67,7 +67,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Get('get-profile-picture')
   async getProfilePicture(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<StreamableFile> {
     const stream = await this.companyService.getProfilePicture(userId);
     return new StreamableFile(stream);
@@ -84,7 +84,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Put('update-name')
   async updateName(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateNameDto,
   ): Promise<void> {
     await this.companyService.updateName(userId, body.name);
@@ -101,7 +101,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Put('update-description')
   async updateDescription(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateDescriptionDto,
   ): Promise<void> {
     await this.companyService.updateDescription(userId, body.description);
@@ -118,7 +118,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Put('update-department')
   async updateDepartment(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateDepartmentDto,
   ): Promise<void> {
     await this.companyService.updateDepartment(userId, body.department);
@@ -135,7 +135,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Post('add-social-network')
   async addSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: CreateSocialNetworkDto,
   ): Promise<void> {
     await this.companyService.createSocialNetwork(
@@ -155,7 +155,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Get('get-social-networks')
   async getSocialNetworks(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<SocialNetworkDto[]> {
     const sn = await this.companyService.getSocialNetworks(userId);
     return SocialNetworkDto.fromEntities(sn);
@@ -172,7 +172,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Delete('delete-social-network/:id')
   async deleteSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('id') socialNetworkId: string,
   ): Promise<void> {
     await this.companyService.deleteSocialNetwork(userId, socialNetworkId);
@@ -190,7 +190,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Put('update-social-network')
   async updateSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateSocialNetworkDto,
   ): Promise<void> {
     await this.companyService.updateSocialNetwork(userId, body.id, body.url);
@@ -209,7 +209,7 @@ export class CompanyController {
   @UseInterceptors(FileInterceptor('file'))
   @Post('add-legal-document/:type')
   async addLegalDocument(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('type') type: LegalDocumentType,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<void> {
@@ -228,7 +228,7 @@ export class CompanyController {
   @Delete('delete-legal-document/:type')
   async deleteLegalDocument(
     @Param('type') type: LegalDocumentType,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<void> {
     await this.companyService.deleteLegalDocument(userId, type);
   }
@@ -245,7 +245,7 @@ export class CompanyController {
   @Get('get-legal-document-status/:type')
   async getLegalDocumentStatus(
     @Param('type') type: LegalDocumentType,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<any> {
     const status = await this.companyService.getLegalDocumentStatus(
       userId,
@@ -263,7 +263,7 @@ export class CompanyController {
    */
   @UseGuards(AuthGuard)
   @Get('create-setup-intent')
-  async createSetupIntent(@IdFromJWT() userId: string): Promise<any> {
+  async createSetupIntent(@IdFromJWT() userId: number): Promise<any> {
     const company = await this.companyService.getCompany(userId);
     const setupIntent = await this.companyService.createSetupIntent(userId);
     const ephemeralKey = await this.companyService.createEphemeralKey(userId);
@@ -277,7 +277,7 @@ export class CompanyController {
   @ApiOperation({ summary: 'Check if influencer completed legal documents' })
   @UseGuards(AuthGuard)
   @Get('has-completed/legal-documents')
-  async hasCompletedLegalDocuments(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedLegalDocuments(@IdFromJWT() userId: number): Promise<any> {
     const hasCompleted =
       await this.companyService.hasCompletedDocuments(userId);
     return { has_completed: hasCompleted };
@@ -286,7 +286,7 @@ export class CompanyController {
   @ApiOperation({ summary: 'Check if influencer completed Stripe onboarding' })
   @UseGuards(AuthGuard)
   @Get('has-completed/stripe')
-  async hasCompletedStripe(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedStripe(@IdFromJWT() userId: number): Promise<any> {
     const hasCompleted = await this.companyService.hasCompletedStripe(userId);
     return { has_completed: hasCompleted };
   }
@@ -294,7 +294,7 @@ export class CompanyController {
   @ApiOperation({})
   @UseGuards(AuthGuard)
   @Get('stripe/billing-portal-session')
-  async getAccountSettingsLink(@IdFromJWT() userId: string) {
+  async getAccountSettingsLink(@IdFromJWT() userId: number) {
     const url = await this.companyService.createBillingPortalSession(userId);
     return { url };
   }
@@ -303,7 +303,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get('has-instagram-account')
-  async hasInstagramAccount(@IdFromJWT() userId: string): Promise<any> {
+  async hasInstagramAccount(@IdFromJWT() userId: number): Promise<any> {
     const hasInstagramAccount =
       await this.facebookService.hasInstagramAccount(userId);
     return { has_instagram_account: hasInstagramAccount };
@@ -314,8 +314,9 @@ export class CompanyController {
   @ApiResponse({})
   @Get('instagram')
   async getInstagramAccount(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<InstagramAccountDto> {
+    await this.facebookService.refreshInstagramStatistics(userId);
     const instagramAccount =
       await this.facebookService.getInstagramAccount(userId);
     return InstagramAccountDto.fromEntity(instagramAccount);
@@ -326,7 +327,7 @@ export class CompanyController {
   @ApiResponse({})
   @Get('instagram/:fetched_instagram_account_id')
   async createInstagramAccount(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('fetched_instagram_account_id') fetchedInstagramAccountId: string,
   ): Promise<void> {
     await this.facebookService.createInstagramAccount(
@@ -340,7 +341,7 @@ export class CompanyController {
   @ApiResponse({})
   @Get('get-profile-completion-status')
   async getProfileCompletionStatus(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<CompanyProfileCompletionStatusDto> {
     let e = await this.companyService.getProfileCompletionStatus(userId);
     return CompanyProfileCompletionStatusDto.fromEntity(e);
@@ -350,7 +351,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get('has-completed-profile')
-  async hasCompletedProfile(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedProfile(@IdFromJWT() userId: number): Promise<any> {
     let hasCompletedProfile =
       await this.companyService.hasCompletedProfile(userId);
     return { has_completed_profile: hasCompletedProfile };
@@ -360,7 +361,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get()
-  async getCompany(@IdFromJWT() userId: string): Promise<CompanyDto> {
+  async getCompany(@IdFromJWT() userId: number): Promise<CompanyDto> {
     let company = await this.companyService.getCompany(userId);
     let socialNetworks = await this.companyService.getSocialNetworks(userId);
     /// Add statistics

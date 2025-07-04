@@ -34,7 +34,7 @@ export class CompanyService {
    * @throws Error if the file is not provided or the user is not found.
    */
   async updateProfilePicture(
-    userId: string,
+    userId: number,
     file: Express.Multer.File,
   ): Promise<string> {
     if (!file) {
@@ -79,7 +79,7 @@ export class CompanyService {
    * @returns The URL of the profile picture.
    * @throws Error if the user is not found or the profile picture does not exist.
    */
-  async getProfilePicture(userId: string): Promise<internal.Readable> {
+  async getProfilePicture(userId: number): Promise<internal.Readable> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -100,7 +100,7 @@ export class CompanyService {
    * @param name - The new name for the user.
    * @throws Error if the user is not found.
    */
-  async updateName(userId: string, name: string): Promise<void> {
+  async updateName(userId: number, name: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -116,7 +116,7 @@ export class CompanyService {
    * @param description - The new description for the user.
    * @throws Error if the user is not found.
    */
-  async updateDescription(userId: string, description: string): Promise<void> {
+  async updateDescription(userId: number, description: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -132,7 +132,7 @@ export class CompanyService {
    * @param department - The new department for the user.
    * @throws Error if the user is not found.
    */
-  async updateDepartment(userId: string, department: string): Promise<void> {
+  async updateDepartment(userId: number, department: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -150,7 +150,7 @@ export class CompanyService {
    * @throws UserNotFoundException if the user is not found.
    */
   async createSocialNetwork(
-    userId: string,
+    userId: number,
     platform: PlatformType,
     url: string,
   ): Promise<void> {
@@ -183,7 +183,7 @@ export class CompanyService {
    * @returns The list of social networks.
    * @throws Error if the user is not found.
    */
-  async getSocialNetworks(userId: string): Promise<SocialNetworkEntity[]> {
+  async getSocialNetworks(userId: number): Promise<SocialNetworkEntity[]> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
       throw new UserNotFoundException();
@@ -201,7 +201,7 @@ export class CompanyService {
    * @throws Error if the user is not found or the social network does not exist.
    */
   async deleteSocialNetwork(
-    userId: string,
+    userId: number,
     socialNetworkId: string,
   ): Promise<void> {
     const company = await this.companyRepository.getCompany(userId);
@@ -221,7 +221,7 @@ export class CompanyService {
    * @throws Error if the user is not found or the social network does not exist.
    */
   async updateSocialNetwork(
-    userId: string,
+    userId: number,
     socialNetworkId: string,
     url: string,
   ): Promise<void> {
@@ -235,7 +235,7 @@ export class CompanyService {
   }
 
   async addLegalDocument(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
     file: Express.Multer.File,
   ): Promise<void> {
@@ -273,7 +273,7 @@ export class CompanyService {
    * @throws {UserNotFoundException} If the company with the given `userId` is not found.
    */
   async getLegalDocumentStatus(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
   ): Promise<LegalDocumentStatus> {
     const user = await this.companyRepository.getCompany(userId);
@@ -304,7 +304,7 @@ export class CompanyService {
    * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the company.
    */
   async deleteLegalDocument(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
   ): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
@@ -333,7 +333,7 @@ export class CompanyService {
    * @returns A promise that resolves with the created SetupIntent.
    * @throws {UserNotFoundException} If the company with the given `userId` is not found.
    */
-  async createSetupIntent(userId: string): Promise<Stripe.SetupIntent> {
+  async createSetupIntent(userId: number): Promise<Stripe.SetupIntent> {
     // Fetch the company by userId to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
@@ -356,7 +356,7 @@ export class CompanyService {
    * @returns {Promise<CompanyEntity>} - The company entity linked to the user.
    * @throws {UserNotFoundException} - Thrown if no user is found with the given ID.
    */
-  async getCompany(userId: string): Promise<CompanyEntity> {
+  async getCompany(userId: number): Promise<CompanyEntity> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -374,7 +374,7 @@ export class CompanyService {
    * @throws {UserNotFoundException} If the company with the given `userId` is not found.
    * @throws {StripeError} If the Ephemeral Key creation fails.
    */
-  async createEphemeralKey(userId: string): Promise<Stripe.EphemeralKey> {
+  async createEphemeralKey(userId: number): Promise<Stripe.EphemeralKey> {
     // Fetch the company to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
@@ -390,7 +390,7 @@ export class CompanyService {
     return ephemeralKey;
   }
 
-  async hasCompletedDocuments(userId: string): Promise<boolean> {
+  async hasCompletedDocuments(userId: number): Promise<boolean> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
       throw new UserNotFoundException();
@@ -403,7 +403,7 @@ export class CompanyService {
     return completed;
   }
 
-  async hasCompletedStripe(userId: string): Promise<boolean> {
+  async hasCompletedStripe(userId: number): Promise<boolean> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
       throw new UserNotFoundException();
@@ -415,7 +415,7 @@ export class CompanyService {
     return completed;
   }
 
-  async createBillingPortalSession(userId: string): Promise<string> {
+  async createBillingPortalSession(userId: number): Promise<string> {
     // Fetch the company to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
@@ -431,7 +431,7 @@ export class CompanyService {
     return url;
   }
 
-  async hasCompletedInstagram(userId: string): Promise<any> {
+  async hasCompletedInstagram(userId: number): Promise<any> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
       throw new UserNotFoundException();
@@ -446,7 +446,7 @@ export class CompanyService {
   }
 
   async getProfileCompletionStatus(
-    userId: string,
+    userId: number,
   ): Promise<CompanyProfileCompletionStatusEntity> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
@@ -471,7 +471,7 @@ export class CompanyService {
     return profileCompletionStatus;
   }
 
-  async hasCompletedProfile(userId: string): Promise<boolean> {
+  async hasCompletedProfile(userId: number): Promise<boolean> {
     const profileCompletionStatus =
       await this.getProfileCompletionStatus(userId);
     return (

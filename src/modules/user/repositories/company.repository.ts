@@ -16,7 +16,7 @@ export class CompanyRepository {
    * @param userId - The user's id.
    * @returns The user as an entity, or null if not found.
    */
-  async getCompany(userId: string): Promise<CompanyEntity | null> {
+  async getCompany(userId: number): Promise<CompanyEntity | null> {
     const query = `
           SELECT * 
           FROM api.companies
@@ -55,7 +55,7 @@ export class CompanyRepository {
    * @returns A boolean indicating if the update was successful.
    */
   async updateProfilePicture(
-    userId: string,
+    userId: number,
     profilePicture: string,
   ): Promise<void> {
     const query = `
@@ -70,7 +70,7 @@ export class CompanyRepository {
    * @param userId - The user's id.
    * @param name - The new name.
    */
-  async updateName(userId: string, name: string): Promise<void> {
+  async updateName(userId: number, name: string): Promise<void> {
     const query = `
         UPDATE api.companies
         SET name = $1
@@ -84,7 +84,7 @@ export class CompanyRepository {
    * @param userId - The user's id.
    * @param department - The new department.
    */
-  async updateDepartment(userId: string, department: string): Promise<void> {
+  async updateDepartment(userId: number, department: string): Promise<void> {
     const query = `
         UPDATE api.companies
         SET department = $1
@@ -98,7 +98,7 @@ export class CompanyRepository {
    * @param userId - The user's id.
    * @param description - The new description.
    */
-  async updateDescription(userId: string, description: string): Promise<void> {
+  async updateDescription(userId: number, description: string): Promise<void> {
     const query = `
         UPDATE api.companies
         SET description = $1

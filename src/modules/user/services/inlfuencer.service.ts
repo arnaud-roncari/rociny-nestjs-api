@@ -33,7 +33,7 @@ export class InfluencerService {
    * @throws Error if the file is not provided or the user is not found.
    */
   async updateProfilePicture(
-    userId: string,
+    userId: number,
     file: Express.Multer.File,
   ): Promise<string> {
     if (!file) {
@@ -78,7 +78,7 @@ export class InfluencerService {
    * @returns The URL of the profile picture.
    * @throws Error if the user is not found or the profile picture does not exist.
    */
-  async getProfilePicture(userId: string): Promise<internal.Readable> {
+  async getProfilePicture(userId: number): Promise<internal.Readable> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -100,7 +100,7 @@ export class InfluencerService {
    * @throws Error if no files are provided or the user is not found.
    */
   async updateAllPortfolio(
-    userId: string,
+    userId: number,
     files: Express.Multer.File[],
   ): Promise<string[]> {
     if (!files || files.length === 0) {
@@ -136,7 +136,7 @@ export class InfluencerService {
   }
 
   async addPicturesToPortfolio(
-    userId: string,
+    userId: number,
     files: Express.Multer.File[],
   ): Promise<void> {
     if (!files || files.length === 0) {
@@ -158,7 +158,7 @@ export class InfluencerService {
   }
 
   async removePictureFromPortfolio(
-    userId: string,
+    userId: number,
     pictureUrl: string,
   ): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -183,7 +183,7 @@ export class InfluencerService {
    * @throws Error if the user is not found or the file does not exist.
    */
   async getPortfolio(
-    userId: string,
+    userId: number,
     fileName: string,
   ): Promise<internal.Readable> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -210,7 +210,7 @@ export class InfluencerService {
    * @param name - The new name for the user.
    * @throws Error if the user is not found.
    */
-  async updateName(userId: string, name: string): Promise<void> {
+  async updateName(userId: number, name: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -226,7 +226,7 @@ export class InfluencerService {
    * @param description - The new description for the user.
    * @throws Error if the user is not found.
    */
-  async updateDescription(userId: string, description: string): Promise<void> {
+  async updateDescription(userId: number, description: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -242,7 +242,7 @@ export class InfluencerService {
    * @param department - The new department for the user.
    * @throws Error if the user is not found.
    */
-  async updateDepartment(userId: string, department: string): Promise<void> {
+  async updateDepartment(userId: number, department: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -258,7 +258,7 @@ export class InfluencerService {
    * @param themes - The new themes for the user.
    * @throws Error if the user is not found.
    */
-  async updateThemes(userId: string, themes: string[]): Promise<void> {
+  async updateThemes(userId: number, themes: string[]): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -275,7 +275,7 @@ export class InfluencerService {
    * @throws Error if the user is not found.
    */
   async updateTargetAudience(
-    userId: string,
+    userId: number,
     targetAudience: string[],
   ): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -298,7 +298,7 @@ export class InfluencerService {
    * @throws UserNotFoundException if the user is not found.
    */
   async createSocialNetwork(
-    userId: string,
+    userId: number,
     platform: PlatformType,
     url: string,
   ): Promise<void> {
@@ -331,7 +331,7 @@ export class InfluencerService {
    * @returns The list of social networks.
    * @throws Error if the user is not found.
    */
-  async getSocialNetworks(userId: string): Promise<SocialNetworkEntity[]> {
+  async getSocialNetworks(userId: number): Promise<SocialNetworkEntity[]> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
       throw new UserNotFoundException();
@@ -349,7 +349,7 @@ export class InfluencerService {
    * @throws Error if the user is not found or the social network does not exist.
    */
   async deleteSocialNetwork(
-    userId: string,
+    userId: number,
     socialNetworkId: string,
   ): Promise<void> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -369,7 +369,7 @@ export class InfluencerService {
    * @throws Error if the user is not found or the social network does not exist.
    */
   async updateSocialNetwork(
-    userId: string,
+    userId: number,
     socialNetworkId: string,
     url: string,
   ): Promise<void> {
@@ -383,7 +383,7 @@ export class InfluencerService {
   }
 
   async addLegalDocument(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
     file: Express.Multer.File,
   ): Promise<void> {
@@ -422,7 +422,7 @@ export class InfluencerService {
    * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
    */
   async getLegalDocumentStatus(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
   ): Promise<LegalDocumentStatus> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -453,7 +453,7 @@ export class InfluencerService {
    * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the influencer.
    */
   async deleteLegalDocument(
-    userId: string,
+    userId: number,
     type: LegalDocumentType,
   ): Promise<void> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -482,7 +482,7 @@ export class InfluencerService {
    * @returns A promise that resolves with the URL of the Stripe account link.
    * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
    */
-  async getStripeAccountLink(userId: string): Promise<string> {
+  async getStripeAccountLink(userId: number): Promise<string> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
       throw new UserNotFoundException();
@@ -503,7 +503,7 @@ export class InfluencerService {
    * @returns A URL to the Stripe Express dashboard.
    * @throws UserNotFoundException - If the influencer does not exist in the database.
    */
-  async createLoginLink(userId: string): Promise<string> {
+  async createLoginLink(userId: number): Promise<string> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
       throw new UserNotFoundException();
@@ -523,7 +523,7 @@ export class InfluencerService {
    * @returns `true` if all required documents have been submitted and validated, otherwise `false`.
    * @throws `UserNotFoundException` if the influencer does not exist.
    */
-  async hasCompletedDocuments(userId: string): Promise<boolean> {
+  async hasCompletedDocuments(userId: number): Promise<boolean> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
       throw new UserNotFoundException();
@@ -544,7 +544,7 @@ export class InfluencerService {
    * @returns `true` if the associated Stripe account is fully set up, otherwise `false`.
    * @throws `UserNotFoundException` if the influencer does not exist.
    */
-  async hasCompletedStripe(userId: string): Promise<boolean> {
+  async hasCompletedStripe(userId: number): Promise<boolean> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
       throw new UserNotFoundException();
@@ -556,7 +556,7 @@ export class InfluencerService {
     return completed;
   }
 
-  async getInfluencer(userId: string): Promise<InfluencerEntity> {
+  async getInfluencer(userId: number): Promise<InfluencerEntity> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -565,7 +565,7 @@ export class InfluencerService {
     return user;
   }
 
-  async hasCompletedInstagram(userId: string): Promise<any> {
+  async hasCompletedInstagram(userId: number): Promise<any> {
     const company = await this.influencerRepository.getInfluencer(userId);
     if (!company) {
       throw new UserNotFoundException();
@@ -580,7 +580,7 @@ export class InfluencerService {
   }
 
   async getProfileCompletionStatus(
-    userId: string,
+    userId: number,
   ): Promise<InfluencerProfileCompletionStatusEntity> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
     if (!influencer) {
@@ -612,7 +612,7 @@ export class InfluencerService {
     return profileCompletionStatus;
   }
 
-  async hasCompletedProfile(userId: string): Promise<boolean> {
+  async hasCompletedProfile(userId: number): Promise<boolean> {
     const profileCompletionStatus =
       await this.getProfileCompletionStatus(userId);
     return (

@@ -621,7 +621,7 @@ export class UserAuthService {
    *
    * A user is considered "locally registered" if their `passwordHash` field is not null or not an empty string.
    */
-  async isRegisteredLocally(userId: string): Promise<boolean> {
+  async isRegisteredLocally(userId: number): Promise<boolean> {
     const user = await this.userRepository.getUserById(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -651,7 +651,7 @@ export class UserAuthService {
    * - Hashes the new password and persists it.
    */
   async updatePassword(
-    userId: string,
+    userId: number,
     password: string,
     newPassword: string,
   ): Promise<void> {
@@ -689,7 +689,7 @@ export class UserAuthService {
    * @throws EmailAlreadyUsed - If the email is already taken by another user.
    */
   async updateEmail(
-    userId: string,
+    userId: number,
     password: string,
     newEmail: string,
   ): Promise<void> {
@@ -747,7 +747,7 @@ export class UserAuthService {
    * @throws InvalidCodeException - If the provided code doesn't match.
    */
   async verifyUpdateEmail(
-    userId: string,
+    userId: number,
     newEmail: string,
     verificationCode: number,
   ): Promise<void> {
@@ -783,11 +783,11 @@ export class UserAuthService {
     });
   }
 
-  async deleteUser(userId: string): Promise<void> {
+  async deleteUser(userId: number): Promise<void> {
     await this.userRepository.deleteUserById(userId);
   }
 
-  async deleteOauth(userId: string, provider: string): Promise<void> {
+  async deleteOauth(userId: number, provider: string): Promise<void> {
     const oauth = await this.userRepository.getOAuthUserByUserId(
       provider,
       userId,
@@ -795,7 +795,7 @@ export class UserAuthService {
     await this.userRepository.deleteOAuthUserById(oauth.id);
   }
 
-  async loginWithFacebook(userId: string, code: string): Promise<void> {
+  async loginWithFacebook(userId: number, code: string): Promise<void> {
     const user = await this.userRepository.getUserById(userId);
     if (!user) {
       throw new UserNotFoundException();

@@ -16,7 +16,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @returns The user as an entity, or null if not found.
    */
-  async getInfluencer(userId: string): Promise<InfluencerEntity | null> {
+  async getInfluencer(userId: number): Promise<InfluencerEntity | null> {
     const query = `
         SELECT * 
         FROM api.influencers
@@ -34,7 +34,7 @@ export class InfluencerRepository {
    * @returns A boolean indicating if the update was successful.
    */
   async updateProfilePicture(
-    userId: string,
+    userId: number,
     profilePicture: string,
   ): Promise<void> {
     const query = `
@@ -71,7 +71,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @param portfolio - The new portfolio data as an array of strings.
    */
-  async updatePortfolio(userId: string, portfolio: string[]): Promise<void> {
+  async updatePortfolio(userId: number, portfolio: string[]): Promise<void> {
     const query = `
         UPDATE api.influencers
         SET portfolio = $1
@@ -86,7 +86,7 @@ export class InfluencerRepository {
    * @param newPictures - An array of photo URLs to add.
    */
   async addPicturesToPortfolio(
-    userId: string,
+    userId: number,
     newPictures: string[],
   ): Promise<void> {
     const result = await this.postgresqlService.query(
@@ -109,7 +109,7 @@ export class InfluencerRepository {
    * @param pictureUrl - The exact photo URL to remove.
    */
   async removePictureFromPortfolio(
-    userId: string,
+    userId: number,
     pictureUrl: string,
   ): Promise<void> {
     const result = await this.postgresqlService.query(
@@ -133,7 +133,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @param name - The new name.
    */
-  async updateName(userId: string, name: string): Promise<void> {
+  async updateName(userId: number, name: string): Promise<void> {
     const query = `
         UPDATE api.influencers
         SET name = $1
@@ -147,7 +147,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @param department - The new department.
    */
-  async updateDepartment(userId: string, department: string): Promise<void> {
+  async updateDepartment(userId: number, department: string): Promise<void> {
     const query = `
         UPDATE api.influencers
         SET department = $1
@@ -161,7 +161,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @param description - The new description.
    */
-  async updateDescription(userId: string, description: string): Promise<void> {
+  async updateDescription(userId: number, description: string): Promise<void> {
     const query = `
         UPDATE api.influencers
         SET description = $1
@@ -176,7 +176,7 @@ export class InfluencerRepository {
    * @param targetAudience - The new target audience data as an array of strings.
    */
   async updateTargetAudience(
-    userId: string,
+    userId: number,
     targetAudience: string[],
   ): Promise<void> {
     const query = `
@@ -192,7 +192,7 @@ export class InfluencerRepository {
    * @param userId - The user's id.
    * @param themes - The new themes data as an array of strings.
    */
-  async updateThemes(userId: string, themes: string[]): Promise<void> {
+  async updateThemes(userId: number, themes: string[]): Promise<void> {
     const query = `
         UPDATE api.influencers
         SET themes = $1

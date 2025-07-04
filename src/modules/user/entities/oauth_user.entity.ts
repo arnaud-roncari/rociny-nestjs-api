@@ -1,6 +1,6 @@
 export class OAuthUserEntity {
   id: number;
-  userId: string;
+  userId: number;
   provider: string;
   providerUserId: string;
   accessToken: string;

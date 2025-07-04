@@ -29,7 +29,7 @@ export class UserRepository {
    * @param id - The user's id.
    * @returns The user as an entity, or null if not found.
    */
-  async getUserById(id: string): Promise<UserEntity | null> {
+  async getUserById(id: number): Promise<UserEntity | null> {
     const query = `
         SELECT * 
         FROM api.users
@@ -104,7 +104,7 @@ export class UserRepository {
    * @param userId - The unique identifier of the user to delete.
    * @returns A Promise that resolves when the user has been deleted.
    */
-  async deleteUserById(userId: string): Promise<void> {
+  async deleteUserById(userId: number): Promise<void> {
     const query = `
     DELETE FROM api.users
     WHERE id = $1
@@ -142,7 +142,7 @@ export class UserRepository {
 
   async getOAuthUserByUserId(
     provider: string,
-    userId: string,
+    userId: number,
   ): Promise<OAuthUserEntity | null> {
     const query = `
       SELECT * 
@@ -231,7 +231,7 @@ export class UserRepository {
    * @param passwordHash - The new hashed password.
    */
   async updateUserPassword(
-    userId: string,
+    userId: number,
     passwordHash: string,
   ): Promise<void> {
     const query = `
@@ -246,7 +246,7 @@ export class UserRepository {
    * @param id - The user's id.
    * @param email - The new email.
    */
-  async updateUserEmail(userId: string, email: string): Promise<void> {
+  async updateUserEmail(userId: number, email: string): Promise<void> {
     const query = `
     UPDATE api.users
     SET email = $1

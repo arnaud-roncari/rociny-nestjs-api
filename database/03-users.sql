@@ -3,6 +3,6 @@ CREATE TABLE api.users (
     email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(1024),
     account_type VARCHAR(255),
-    picture_path VARCHAR(1024) NULL,
+    picture_path VARCHAR(1024) NULL, --remove ?
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

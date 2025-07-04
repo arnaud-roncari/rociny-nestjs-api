@@ -3,10 +3,26 @@ import { PostgresqlService } from '../postgresql/postgresql.service';
 import axios from 'axios';
 import { FetchedInstagramAccountEntity } from './entities/fetched_instagram_account.entity';
 import { InstagramAccountEntity } from './entities/instagram_account.entity';
+import { InsightsEntity } from './entities/insight.entity';
+import { GenderInsightEntity } from './entities/gender_insight.entity';
+import { CityInsightEntity } from './entities/city_insight.entity';
+import { AgeInsightEntity } from './entities/age_insight.entity';
+import { MediaInsightEntity } from './entities/media_insight.entity';
+import { InstagramProfileEntity } from './entities/instagram_profile.entity';
 
 @Injectable()
 export class FacebookRepository {
   constructor(private readonly postgresqlService: PostgresqlService) {}
+
+  private _getThirtyDaysAgo(): string {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  }
+
+  private _getToday(): string {
+    return new Date().toISOString().split('T')[0];
+  }
 
   /**
    * Exchange a Facebook OAuth authorization code for a short-lived access token.
@@ -120,7 +136,7 @@ export class FacebookRepository {
    * @param userId - The user's id.
    * @returns True if the session exists and is not expired, false otherwise.
    */
-  async hasFacebookSession(userId: string): Promise<boolean> {
+  async hasFacebookSession(userId: number): Promise<boolean> {
     const query = `
       SELECT access_token, token_expiration
       FROM api.oauth_users
@@ -142,7 +158,7 @@ export class FacebookRepository {
    * @param userId - The user's id.
    * @returns True if an Instagram account exists for the user, false otherwise.
    */
-  async hasInstagramAccount(userId: string): Promise<boolean> {
+  async hasInstagramAccount(userId: number): Promise<boolean> {
     const query = `
     SELECT 1
     FROM api.instagram_accounts
@@ -159,7 +175,7 @@ export class FacebookRepository {
    * @returns The Instagram account entity or null if not found.
    */
   async getInstagramAccount(
-    userId: string,
+    userId: number,
   ): Promise<InstagramAccountEntity | null> {
     const query = `
     SELECT *
@@ -184,7 +200,7 @@ export class FacebookRepository {
    * @returns The newly created Instagram account entity.
    */
   async createInstagramAccount(
-    userId: string,
+    userId: number,
     instagramId: string,
     name: string,
     username: string,
@@ -221,12 +237,220 @@ export class FacebookRepository {
    * Delete an Instagram account for a specific user.
    * @param userId - The user's id.
    */
-  async deleteInstagramAccount(userId: string): Promise<void> {
+  async deleteInstagramAccount(userId: number): Promise<void> {
     const query = `
     DELETE FROM api.instagram_accounts
     WHERE user_id = $1
   `;
 
     await this.postgresqlService.query(query, [userId]);
+  }
+
+  /// age city
+
+  /**
+   * Fetches Instagram insights for the last 30 days.
+   *
+   * Includes:
+   * - views
+   * - reach
+   * - profile views
+   * - website clicks
+   * - profile link taps
+   * - total interactions
+   *
+   * @param instagramId - Instagram user ID
+   * @param token - Access token
+   * @returns InsightsEntity with aggregated values
+   */
+  async getInsights(
+    instagramId: string,
+    token: string,
+  ): Promise<InsightsEntity> {
+    const url = `https://graph.facebook.com/v19.0/${instagramId}/insights`;
+    const response = await axios.get(url, {
+      params: {
+        metric:
+          'views,reach,profile_views,website_clicks,total_interactions,profile_links_taps',
+        period: 'day',
+        metric_type: 'total_value',
+        access_token: token,
+        since: this._getThirtyDaysAgo(),
+        until: this._getToday(),
+      },
+    });
+    const entity = InsightsEntity.fromResponse(response);
+    return entity;
+  }
+
+  async getGenderInsight(
+    instagramId: string,
+    token: string,
+  ): Promise<GenderInsightEntity> {
+    const url = `https://graph.facebook.com/v19.0/${instagramId}/insights`;
+
+    const response = await axios.get(url, {
+      params: {
+        metric: 'follower_demographics',
+        breakdown: 'gender',
+        period: 'lifetime',
+        metric_type: 'total_value',
+        access_token: token,
+      },
+    });
+    let entity = GenderInsightEntity.fromBreakdowns(
+      response.data.data[0].total_value.breakdowns[0].results,
+    );
+    return entity;
+  }
+
+  async getCityInsight(
+    instagramId: string,
+    token: string,
+  ): Promise<CityInsightEntity> {
+    const url = `https://graph.facebook.com/v19.0/${instagramId}/insights`;
+
+    const response = await axios.get(url, {
+      params: {
+        metric: 'follower_demographics',
+        breakdown: 'city',
+        period: 'lifetime',
+        metric_type: 'total_value',
+        access_token: token,
+      },
+    });
+
+    let entity = CityInsightEntity.fromBreakdowns(
+      response.data.data[0].total_value.breakdowns[0].results,
+    );
+    return entity;
+  }
+
+  async getAgeInsight(
+    instagramId: string,
+    token: string,
+  ): Promise<AgeInsightEntity> {
+    const url = `https://graph.facebook.com/v19.0/${instagramId}/insights`;
+
+    const response = await axios.get(url, {
+      params: {
+        metric: 'follower_demographics',
+        breakdown: 'age',
+        period: 'lifetime',
+        metric_type: 'total_value',
+        access_token: token,
+      },
+    });
+
+    let entity = AgeInsightEntity.fromBreakdowns(
+      response.data.data[0].total_value.breakdowns[0].results,
+    );
+    return entity;
+  }
+
+  async getMediaInsight(
+    instagramId: string,
+    token: string,
+  ): Promise<MediaInsightEntity> {
+    const url = `https://graph.facebook.com/v20.0/${instagramId}/media`;
+
+    const response = await axios.get(url, {
+      params: {
+        fields: 'id,media_type,media_url,like_count,comments_count',
+        limit: 20,
+        access_token: token,
+      },
+    });
+
+    const mediaList = response.data?.data ?? [];
+    return MediaInsightEntity.fromMediaList(mediaList);
+  }
+
+  async updateInstagramAccount(stats: {
+    userId: number;
+    reach: number;
+    views: number;
+    profileViews: number;
+    profileViewRate: number;
+    websiteClicks: number;
+    linkClicks: number;
+    engagementRate: number;
+    totalInteractions: number;
+    interactionPercentagePosts: number;
+    interactionPercentageReels: number;
+    postPercentage: number;
+    reelPercentage: number;
+    genderMalePercentage: number;
+    genderFemalePercentage: number;
+    topCities: string[];
+    topAgeRanges: string[];
+    lastMediaUrl: string;
+    followersCount: number;
+    profilePictureUrl: string;
+  }): Promise<void> {
+    const query = `
+    UPDATE api.instagram_accounts
+    SET
+      reach = $1,
+      views = $2,
+      profile_views = $3,
+      profile_view_rate = $4,
+      website_clicks = $5,
+      link_clicks = $6,
+      engagement_rate = $7,
+      total_interactions = $8,
+      interaction_percentage_posts = $9,
+      interaction_percentage_reels = $10,
+      post_percentage = $11,
+      reel_percentage = $12,
+      gender_male_percentage = $13,
+      gender_female_percentage = $14,
+      top_cities = $15,
+      top_age_ranges = $16,
+      last_media_url = $17,
+      followers_count = $18,
+      profile_picture_url = $19,
+      updated_at = NOW()
+    WHERE user_id = $20
+  `;
+
+    await this.postgresqlService.query(query, [
+      stats.reach,
+      stats.views,
+      stats.profileViews,
+      stats.profileViewRate,
+      stats.websiteClicks,
+      stats.linkClicks,
+      stats.engagementRate,
+      stats.totalInteractions,
+      stats.interactionPercentagePosts,
+      stats.interactionPercentageReels,
+      stats.postPercentage,
+      stats.reelPercentage,
+      stats.genderMalePercentage,
+      stats.genderFemalePercentage,
+      stats.topCities,
+      stats.topAgeRanges,
+      stats.lastMediaUrl,
+      stats.followersCount,
+      stats.profilePictureUrl,
+      stats.userId,
+    ]);
+  }
+
+  async getInstagramProfile(
+    instagramId: string,
+    token: string,
+  ): Promise<InstagramProfileEntity> {
+    const url = `https://graph.facebook.com/v19.0/${instagramId}`;
+
+    const response = await axios.get(url, {
+      params: {
+        fields: 'username,profile_picture_url,followers_count',
+        access_token: token,
+      },
+    });
+
+    return InstagramProfileEntity.fromResponse(response.data);
   }
 }

@@ -54,7 +54,7 @@ export class InfluencerController {
   @Put('update-profile-picture')
   async updateProfilePicture(
     @UploadedFile() file: Express.Multer.File,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<ProfilePictureUpdatedDto> {
     const newProfilePicture: string =
       await this.influencerService.updateProfilePicture(userId, file);
@@ -71,7 +71,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Get('get-profile-picture')
   async getProfilePicture(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<StreamableFile> {
     const stream = await this.influencerService.getProfilePicture(userId);
     return new StreamableFile(stream);
@@ -90,7 +90,7 @@ export class InfluencerController {
   @Put('update-all-portfolio')
   async updateAllPortfolio(
     @UploadedFiles() files: Express.Multer.File[],
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<PortfolioUpdatedDto> {
     const newPortfolio = await this.influencerService.updateAllPortfolio(
       userId,
@@ -104,7 +104,7 @@ export class InfluencerController {
   @Put('add-pictures-to-portfolio')
   async AddPicturesToPortfolio(
     @UploadedFiles() files: Express.Multer.File[],
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<any> {
     await this.influencerService.addPicturesToPortfolio(userId, files);
   }
@@ -112,7 +112,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Delete('remove-picture-from-portfolio/:picture_url')
   async RemovePictureFromPortfolio(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('picture_url') pictureUrl: string,
   ): Promise<any> {
     await this.influencerService.removePictureFromPortfolio(userId, pictureUrl);
@@ -129,7 +129,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Get('get-portfolio/:name')
   async getPortfolio(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('name') name: string,
   ): Promise<StreamableFile> {
     const stream = await this.influencerService.getPortfolio(userId, name);
@@ -147,7 +147,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Put('update-name')
   async updateName(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateNameDto,
   ): Promise<void> {
     await this.influencerService.updateName(userId, body.name);
@@ -164,7 +164,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Put('update-description')
   async updateDescription(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateDescriptionDto,
   ): Promise<void> {
     await this.influencerService.updateDescription(userId, body.description);
@@ -181,7 +181,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Put('update-department')
   async updateDepartment(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateDepartmentDto,
   ): Promise<void> {
     await this.influencerService.updateDepartment(userId, body.department);
@@ -198,7 +198,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Put('update-themes')
   async updateThemes(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateThemesDto,
   ): Promise<void> {
     await this.influencerService.updateThemes(userId, body.themes);
@@ -217,7 +217,7 @@ export class InfluencerController {
   async updateTargetAudience(
     @Body() body: UpdateTargetAudienceDto,
 
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<void> {
     await this.influencerService.updateTargetAudience(
       userId,
@@ -236,7 +236,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Post('add-social-network')
   async addSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: CreateSocialNetworkDto,
   ): Promise<void> {
     await this.influencerService.createSocialNetwork(
@@ -256,7 +256,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Get('get-social-networks')
   async getSocialNetworks(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<SocialNetworkDto[]> {
     const sn = await this.influencerService.getSocialNetworks(userId);
     return SocialNetworkDto.fromEntities(sn);
@@ -273,7 +273,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Delete('delete-social-network/:id')
   async deleteSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('id') socialNetworkId: string,
   ): Promise<void> {
     await this.influencerService.deleteSocialNetwork(userId, socialNetworkId);
@@ -291,7 +291,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Put('update-social-network')
   async updateSocialNetwork(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Body() body: UpdateSocialNetworkDto,
   ): Promise<void> {
     await this.influencerService.updateSocialNetwork(userId, body.id, body.url);
@@ -310,7 +310,7 @@ export class InfluencerController {
   @UseInterceptors(FileInterceptor('file'))
   @Post('add-legal-document/:type')
   async addLegalDocument(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('type') type: LegalDocumentType,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<void> {
@@ -329,7 +329,7 @@ export class InfluencerController {
   @Delete('delete-legal-document/:type')
   async deleteLegalDocument(
     @Param('type') type: LegalDocumentType,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<void> {
     await this.influencerService.deleteLegalDocument(userId, type);
   }
@@ -346,7 +346,7 @@ export class InfluencerController {
   @Get('get-legal-document-status/:type')
   async getLegalDocumentStatus(
     @Param('type') type: LegalDocumentType,
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<any> {
     const status = await this.influencerService.getLegalDocumentStatus(
       userId,
@@ -367,7 +367,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @Get('stripe/account-link')
   async getStripeAccountLink(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<{ url: string }> {
     const url = await this.influencerService.getStripeAccountLink(userId);
 
@@ -386,7 +386,7 @@ export class InfluencerController {
   @ApiOperation({ summary: 'Check if influencer completed legal documents' })
   @UseGuards(AuthGuard)
   @Get('has-completed/legal-documents')
-  async hasCompletedLegalDocuments(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedLegalDocuments(@IdFromJWT() userId: number): Promise<any> {
     const hasCompleted =
       await this.influencerService.hasCompletedDocuments(userId);
     return { has_completed: hasCompleted };
@@ -404,7 +404,7 @@ export class InfluencerController {
   @ApiOperation({ summary: 'Check if influencer completed Stripe onboarding' })
   @UseGuards(AuthGuard)
   @Get('has-completed/stripe')
-  async hasCompletedStripe(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedStripe(@IdFromJWT() userId: number): Promise<any> {
     const hasCompleted =
       await this.influencerService.hasCompletedStripe(userId);
     return { has_completed: hasCompleted };
@@ -417,7 +417,7 @@ export class InfluencerController {
   })
   @UseGuards(AuthGuard)
   @Get('stripe/login-link')
-  async getAccountSettingsLink(@IdFromJWT() userId: string) {
+  async getAccountSettingsLink(@IdFromJWT() userId: number) {
     const url = await this.influencerService.createLoginLink(userId);
     return { url };
   }
@@ -426,7 +426,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get('has-instagram-account')
-  async hasInstagramAccount(@IdFromJWT() userId: string): Promise<any> {
+  async hasInstagramAccount(@IdFromJWT() userId: number): Promise<any> {
     const hasInstagramAccount =
       await this.facebookService.hasInstagramAccount(userId);
     return { has_instagram_account: hasInstagramAccount };
@@ -437,8 +437,9 @@ export class InfluencerController {
   @ApiResponse({})
   @Get('instagram')
   async getInstagramAccount(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<InstagramAccountDto> {
+    await this.facebookService.refreshInstagramStatistics(userId);
     const instagramAccount =
       await this.facebookService.getInstagramAccount(userId);
     return InstagramAccountDto.fromEntity(instagramAccount);
@@ -449,7 +450,7 @@ export class InfluencerController {
   @ApiResponse({})
   @Get('instagram/:fetched_instagram_account_id')
   async createInstagramAccount(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
     @Param('fetched_instagram_account_id') fetchedInstagramAccountId: string,
   ): Promise<void> {
     await this.facebookService.createInstagramAccount(
@@ -462,7 +463,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get('has-completed-profile')
-  async hasCompletedProfile(@IdFromJWT() userId: string): Promise<any> {
+  async hasCompletedProfile(@IdFromJWT() userId: number): Promise<any> {
     let hasCompletedProfile =
       await this.influencerService.hasCompletedProfile(userId);
     return { has_completed_profile: hasCompletedProfile };
@@ -472,7 +473,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get()
-  async getCompany(@IdFromJWT() userId: string): Promise<InfluencerDto> {
+  async getCompany(@IdFromJWT() userId: number): Promise<InfluencerDto> {
     let influencer = await this.influencerService.getInfluencer(userId);
     let socialNetworks = await this.influencerService.getSocialNetworks(userId);
     /// Add statistics
@@ -484,9 +485,26 @@ export class InfluencerController {
   @ApiResponse({})
   @Get('get-profile-completion-status')
   async getProfileCompletionStatus(
-    @IdFromJWT() userId: string,
+    @IdFromJWT() userId: number,
   ): Promise<InfluencerProfileCompletionStatusDto> {
     let e = await this.influencerService.getProfileCompletionStatus(userId);
     return InfluencerProfileCompletionStatusDto.fromEntity(e);
   }
+
+  // @Get('zeubi')
+  // // @UseGuards(AuthGuard)
+  // async zeubi(): Promise<void> {
+  //   try {
+  //     await this.facebookService.getInstagramStatistics(35);
+  //   } catch (error) {
+  //     if (error.isAxiosError && error.response) {
+  //       console.error(
+  //         'API error:',
+  //         JSON.stringify(error?.response?.data || error.message, null, 2),
+  //       );
+  //     } else {
+  //       console.error('Error:', error.message);
+  //     }
+  //   }
+  // }
 }
