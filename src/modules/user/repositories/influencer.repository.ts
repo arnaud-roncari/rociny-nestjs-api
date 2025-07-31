@@ -6,6 +6,7 @@ import { SocialNetworkEntity } from '../entities/social_network.entity';
 import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
 import { LegalDocumentEntity } from '../entities/legal_document.entity';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
 
 @Injectable()
 export class InfluencerRepository {
@@ -24,6 +25,24 @@ export class InfluencerRepository {
         LIMIT 1
       `;
     const result = await this.postgresqlService.query(query, [userId]);
+    return result.length > 0 ? InfluencerEntity.fromJson(result[0]) : null;
+  }
+
+  /**
+   * Fetch an influencer by their influencer id.
+   * @param influencerId - The influencer's id.
+   * @returns The influencer as an entity, or null if not found.
+   */
+  async getInfluencerById(
+    influencerId: number,
+  ): Promise<InfluencerEntity | null> {
+    const query = `
+      SELECT *
+      FROM api.influencers
+      WHERE id = $1
+      LIMIT 1
+    `;
+    const result = await this.postgresqlService.query(query, [influencerId]);
     return result.length > 0 ? InfluencerEntity.fromJson(result[0]) : null;
   }
 
@@ -401,5 +420,126 @@ export class InfluencerRepository {
     const count = parseInt(result[0]?.count ?? '0', 10);
 
     return count === requiredTypes.length;
+  }
+
+  async searchInfluencersByTheme(theme?: string): Promise<InfluencerSummary[]> {
+    const baseQuery = `
+    SELECT 
+      i.id,
+      i.user_id,
+      i.profile_picture,
+      i.portfolio,
+      i.name,
+      insta.followers_count
+    FROM api.influencers i
+    JOIN api.social_networks sn ON sn.influencer_id = i.id
+    JOIN api.instagram_accounts insta ON insta.user_id = i.user_id
+    WHERE 
+      i.profile_picture IS NOT NULL
+      AND i.name IS NOT NULL
+      AND i.department IS NOT NULL
+      AND i.description IS NOT NULL
+      AND cardinality(i.themes) > 0
+      AND cardinality(i.target_audience) > 0
+      AND cardinality(i.portfolio) > 0
+      ${theme ? `AND $1 = ANY(i.themes)` : ''}
+    GROUP BY i.id, insta.followers_count
+    LIMIT 50
+  `;
+
+    const result = theme
+      ? await this.postgresqlService.query(baseQuery, [theme])
+      : await this.postgresqlService.query(baseQuery);
+
+    return result.map((row) => InfluencerSummary.fromJson(row));
+  }
+
+  async searchInfluencersByFilters(
+    themes?: string[],
+    departments?: string[],
+    ages?: string[],
+    targets?: string[],
+    followersRange?: number[],
+    engagementRateRange?: number[],
+  ): Promise<InfluencerSummary[]> {
+    const filters: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    const baseQuery = `
+    SELECT 
+      i.id,
+      i.user_id,
+      i.profile_picture,
+      i.portfolio,
+      i.name,
+      insta.followers_count
+    FROM api.influencers i
+    JOIN api.social_networks sn ON sn.influencer_id = i.id
+    JOIN api.instagram_accounts insta ON insta.user_id = i.user_id
+    WHERE 
+      i.profile_picture IS NOT NULL
+      AND i.name IS NOT NULL
+      AND i.department IS NOT NULL
+      AND i.description IS NOT NULL
+      AND cardinality(i.themes) > 0
+      AND cardinality(i.target_audience) > 0
+      AND cardinality(i.portfolio) > 0
+  `;
+
+    // Query construction based on provided filters
+    if (themes && themes.length > 0) {
+      filters.push(
+        `(${themes.map(() => `$${paramIndex++} = ANY(i.themes)`).join(' OR ')})`,
+      );
+      values.push(...themes);
+    }
+
+    if (departments && departments.length > 0) {
+      filters.push(`i.department = ANY($${paramIndex++})`);
+      values.push(departments);
+    }
+
+    if (targets && targets.length > 0) {
+      filters.push(
+        `(${targets.map(() => `$${paramIndex++} = ANY(i.target_audience)`).join(' OR ')})`,
+      );
+      values.push(...targets);
+    }
+
+    if (ages && ages.length > 0) {
+      filters.push(
+        `(${ages.map(() => `$${paramIndex++} = ANY(insta.top_age_ranges)`).join(' OR ')})`,
+      );
+      values.push(...ages);
+    }
+
+    if (followersRange && followersRange.length === 2) {
+      filters.push(
+        `insta.followers_count BETWEEN $${paramIndex} AND $${paramIndex + 1}`,
+      );
+      values.push(followersRange[0], followersRange[1]);
+      paramIndex += 2;
+    }
+
+    if (engagementRateRange && engagementRateRange.length === 2) {
+      filters.push(
+        `insta.engagement_rate BETWEEN $${paramIndex} AND $${paramIndex + 1}`,
+      );
+      values.push(engagementRateRange[0], engagementRateRange[1]);
+      paramIndex += 2;
+    }
+
+    const whereClause =
+      filters.length > 0 ? ` AND ${filters.join(' AND ')}` : '';
+    const finalQuery = `
+    ${baseQuery}
+    ${whereClause}
+    GROUP BY i.id, insta.followers_count
+    LIMIT 50
+  `;
+
+    const result = await this.postgresqlService.query(finalQuery, values);
+    return result.map((row) => InfluencerSummary.fromJson(row));
   }
 }

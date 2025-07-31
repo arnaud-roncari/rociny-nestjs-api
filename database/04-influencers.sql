@@ -12,6 +12,6 @@ CREATE TABLE api.influencers (
     --
     stripe_account_id TEXT NOT NULL,
     --
-
+    -- is_completed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

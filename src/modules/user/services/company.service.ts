@@ -16,11 +16,15 @@ import { CompanyEntity } from '../entities/company.entity';
 import Stripe from 'stripe';
 import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
 import { CompanyProfileCompletionStatusEntity } from '../entities/company_profile_completion_status.entity';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
+import { InfluencerRepository } from '../repositories/influencer.repository';
+import { SearchInfluencersByFiltersDto } from '../dtos/search-influencers-by-filters.dto';
 
 @Injectable()
 export class CompanyService {
   constructor(
     private readonly companyRepository: CompanyRepository,
+    private readonly influencerRepository: InfluencerRepository,
     private readonly facebookRepository: FacebookRepository,
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
@@ -484,5 +488,28 @@ export class CompanyService {
       profileCompletionStatus.hasStripePaymentMethod &&
       profileCompletionStatus.hasInstagramAccount
     );
+  }
+
+  async searchInfluencersByTheme(
+    theme: string | null,
+  ): Promise<InfluencerSummary[]> {
+    let influencers =
+      await this.influencerRepository.searchInfluencersByTheme(theme);
+    return influencers;
+  }
+
+  async searchInfluencersByFilters(
+    filters: SearchInfluencersByFiltersDto,
+  ): Promise<InfluencerSummary[]> {
+    let influencers =
+      await this.influencerRepository.searchInfluencersByFilters(
+        filters.themes,
+        filters.departments,
+        filters.ages,
+        filters.targets,
+        filters.followers_range,
+        filters.engagement_rate_range,
+      );
+    return influencers;
   }
 }

@@ -62,6 +62,24 @@ export class InfluencerController {
   }
 
   /**
+   * Streams the profile picture of a user by their user ID.
+   *
+   * @param userId - The ID of the user to fetch the profile picture for.
+   * @returns A stream of the user's profile picture.
+   */
+  @ApiOperation({ summary: 'Stream profile picture by user ID' })
+  @ApiResponse({ status: 200, description: 'Image stream' })
+  @UseGuards(AuthGuard)
+  @Get('get-profile-picture/:userId')
+  async getProfilePictureByUserId(
+    @Param('userId') userId: number,
+  ): Promise<StreamableFile> {
+    const stream = await this.influencerService.getProfilePicture(userId);
+
+    return new StreamableFile(stream);
+  }
+
+  /**
    * Streams the profile picture of the currently authenticated user.
    *
    * @param userId - The ID of the user extracted from the JWT token.
@@ -130,6 +148,17 @@ export class InfluencerController {
   @Get('get-portfolio/:name')
   async getPortfolio(
     @IdFromJWT() userId: number,
+    @Param('name') name: string,
+  ): Promise<StreamableFile> {
+    const stream = await this.influencerService.getPortfolio(userId, name);
+    return new StreamableFile(stream);
+  }
+
+  @ApiOperation({ summary: 'Get specific portfolio file' })
+  @UseGuards(AuthGuard)
+  @Get('get-portfolio/:name/:user_id')
+  async getPortfolioByUserId(
+    @Param('user_id') userId: number,
     @Param('name') name: string,
   ): Promise<StreamableFile> {
     const stream = await this.influencerService.getPortfolio(userId, name);
@@ -473,7 +502,7 @@ export class InfluencerController {
   @UseGuards(AuthGuard)
   @ApiResponse({})
   @Get()
-  async getCompany(@IdFromJWT() userId: number): Promise<InfluencerDto> {
+  async getInfluencer(@IdFromJWT() userId: number): Promise<InfluencerDto> {
     let influencer = await this.influencerService.getInfluencer(userId);
     let socialNetworks = await this.influencerService.getSocialNetworks(userId);
     /// Add statistics

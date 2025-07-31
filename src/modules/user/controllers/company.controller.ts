@@ -28,11 +28,19 @@ import { FacebookService } from 'src/modules/facebook/facebook.service';
 import { InstagramAccountDto } from 'src/modules/facebook/dtos/instagram_account.dto';
 import { CompanyProfileCompletionStatusDto } from '../dtos/company-profile-completion-status.dto';
 import { CompanyDto } from '../dtos/company.dto';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
+import { SearchInfluencersByThemeDto } from '../dtos/search-influencers-by-theme.dto';
+import { InfluencerSummaryDto } from '../dtos/influencer-summary.dto';
+import { SearchInfluencersByFiltersDto } from '../dtos/search-influencers-by-filters.dto';
+import { InfluencerService } from '../services/inlfuencer.service';
+import { InfluencerDto } from '../dtos/influencer.dto';
+import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
 
 @Controller('company')
 export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
+    private readonly influencerService: InfluencerService,
     private readonly facebookService: FacebookService,
   ) {}
 
@@ -366,5 +374,59 @@ export class CompanyController {
     let socialNetworks = await this.companyService.getSocialNetworks(userId);
     /// Add statistics
     return CompanyDto.fromEntity(company, socialNetworks);
+  }
+
+  @ApiOperation({ summary: 'Get influencers by theme' })
+  @UseGuards(AuthGuard)
+  @ApiResponse({ status: 200, type: [InfluencerSummaryDto] })
+  @Post('search-influencers-by-theme')
+  async searchInfluencersByTheme(
+    @Body() dto: SearchInfluencersByThemeDto,
+  ): Promise<InfluencerSummaryDto[]> {
+    const influencers = await this.companyService.searchInfluencersByTheme(
+      dto.theme,
+    );
+    return influencers.map(InfluencerSummaryDto.fromEntity);
+  }
+
+  @ApiOperation({ summary: 'Get influencers by filters' })
+  @UseGuards(AuthGuard)
+  @ApiResponse({ status: 200, type: [InfluencerSummaryDto] })
+  @Post('search-influencers-by-filters')
+  async searchInfluencersByFilters(
+    @Body() dto: SearchInfluencersByFiltersDto,
+  ): Promise<InfluencerSummaryDto[]> {
+    const influencers =
+      await this.companyService.searchInfluencersByFilters(dto);
+    return influencers.map(InfluencerSummaryDto.fromEntity);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-influencer/:user_id')
+  async getInfluencer(@Param('user_id') userId: number): Promise<any> {
+    let influencer = await this.influencerService.getInfluencer(userId);
+    let socialNetworks = await this.influencerService.getSocialNetworks(userId);
+    return InfluencerDto.fromEntity(influencer, socialNetworks);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-instagram-statistics/:user_id')
+  async getInfluencerInstagramStatistics(
+    @Param('user_id') userId: number,
+  ): Promise<any> {
+    await this.facebookService.refreshInstagramStatistics(userId);
+    const instagramAccount =
+      await this.facebookService.getInstagramAccount(userId);
+    return InstagramAccountDto.fromEntity(instagramAccount);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-completion-status/:user_id')
+  async getCompletionStatus(@Param('user_id') userId: number): Promise<any> {
+    let e = await this.influencerService.getProfileCompletionStatus(userId);
+    return InfluencerProfileCompletionStatusDto.fromEntity(e);
   }
 }

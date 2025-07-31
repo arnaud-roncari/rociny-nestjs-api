@@ -79,6 +79,8 @@ export class InfluencerService {
    * @throws Error if the user is not found or the profile picture does not exist.
    */
   async getProfilePicture(userId: number): Promise<internal.Readable> {
+    console.log(userId);
+
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
@@ -190,7 +192,6 @@ export class InfluencerService {
     if (!user) {
       throw new UserNotFoundException();
     }
-
     if (!user.portfolio || !user.portfolio.includes(fileName)) {
       throw new FileNotFoundException();
     }
