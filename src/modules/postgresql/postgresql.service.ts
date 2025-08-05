@@ -27,4 +27,8 @@ export class PostgresqlService implements OnModuleInit, OnModuleDestroy {
     const res = await PostgresqlService.client.query(queryText, params);
     return res.rows;
   }
+
+  getClient(): Client {
+    return PostgresqlService.client;
+  }
 }

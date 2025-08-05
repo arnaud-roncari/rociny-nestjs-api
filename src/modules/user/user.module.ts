@@ -14,6 +14,8 @@ import { CompanyController } from './controllers/company.controller';
 import { EmailService } from '../email/email.service';
 import { FacebookRepository } from '../facebook/facebook.repository';
 import { FacebookService } from '../facebook/facebook.service';
+import { CollaborationRepository } from './repositories/collaboration.repository';
+import { CollaborationService } from './services/collaboration.service';
 
 @Module({
   providers: [
@@ -30,6 +32,8 @@ import { FacebookService } from '../facebook/facebook.service';
     EmailService,
     FacebookRepository,
     FacebookService,
+    CollaborationRepository,
+    CollaborationService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

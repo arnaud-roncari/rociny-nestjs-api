@@ -4,4 +4,5 @@ export enum BucketType {
   policies = 'policies',
   portfolios = 'portfolios',
   legal = 'legal',
+  collaborations = 'collaborations',
 }

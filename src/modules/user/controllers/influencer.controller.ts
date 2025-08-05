@@ -32,12 +32,15 @@ import { InstagramAccountDto } from 'src/modules/facebook/dtos/instagram_account
 import { FacebookService } from 'src/modules/facebook/facebook.service';
 import { InfluencerDto } from '../dtos/influencer.dto';
 import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
+import { CollaborationEntity } from '../entities/collaboration.entity';
+import { CollaborationService } from '../services/collaboration.service';
 
 @Controller('influencer')
 export class InfluencerController {
   constructor(
     private readonly influencerService: InfluencerService,
     private readonly facebookService: FacebookService,
+    private readonly collaborationService: CollaborationService,
   ) {}
 
   /**
@@ -520,20 +523,12 @@ export class InfluencerController {
     return InfluencerProfileCompletionStatusDto.fromEntity(e);
   }
 
-  // @Get('zeubi')
-  // // @UseGuards(AuthGuard)
-  // async zeubi(): Promise<void> {
-  //   try {
-  //     await this.facebookService.getInstagramStatistics(35);
-  //   } catch (error) {
-  //     if (error.isAxiosError && error.response) {
-  //       console.error(
-  //         'API error:',
-  //         JSON.stringify(error?.response?.data || error.message, null, 2),
-  //       );
-  //     } else {
-  //       console.error('Error:', error.message);
-  //     }
-  //   }
-  // }
+  @ApiOperation({ summary: 'Get all collaborations for the influencer' })
+  @UseGuards(AuthGuard)
+  @Get('collaborations')
+  async getInfluencerCollaborations(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationEntity[]> {
+    return this.collaborationService.getCollaborationsByInfluencer(userId);
+  }
 }

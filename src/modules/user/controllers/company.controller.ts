@@ -10,9 +10,15 @@ import {
   Body,
   Post,
   Delete,
+  UploadedFiles,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ProfilePictureUpdatedDto } from '../dtos/profile-picture-updated.dto';
 import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
 import { AuthGuard } from 'src/commons/guards/auth.guard';
@@ -35,6 +41,12 @@ import { SearchInfluencersByFiltersDto } from '../dtos/search-influencers-by-fil
 import { InfluencerService } from '../services/inlfuencer.service';
 import { InfluencerDto } from '../dtos/influencer.dto';
 import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
+import { CollaborationService } from '../services/collaboration.service';
+import { CreateCollaborationDto } from '../dtos/create-collaboration.dto';
+import { CollaborationEntity } from '../entities/collaboration.entity';
+import { BucketType } from 'src/commons/enums/bucket_type';
+import { MinioService } from 'src/modules/minio/minio.service';
+import { CollaborationDto } from '../dtos/collaboration.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -42,6 +54,8 @@ export class CompanyController {
     private readonly companyService: CompanyService,
     private readonly influencerService: InfluencerService,
     private readonly facebookService: FacebookService,
+    private readonly collaborationService: CollaborationService,
+    private readonly minioService: MinioService,
   ) {}
 
   /**
@@ -428,5 +442,97 @@ export class CompanyController {
   async getCompletionStatus(@Param('user_id') userId: number): Promise<any> {
     let e = await this.influencerService.getProfileCompletionStatus(userId);
     return InfluencerProfileCompletionStatusDto.fromEntity(e);
+  }
+
+  @ApiOperation({ summary: 'Create a new collaboration' })
+  @UseGuards(AuthGuard)
+  @ApiBody({ type: CreateCollaborationDto })
+  @Post('create-collaboration')
+  async createCollaboration(
+    @Body() dto: CreateCollaborationDto,
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationDto> {
+    const company = await this.companyService.getCompany(userId);
+    const collab = await this.collaborationService.createCollaboration(
+      dto,
+      company.id,
+    );
+
+    return CollaborationDto.fromEntity(collab);
+  }
+
+  @ApiOperation({ summary: 'Create a new collaboration (draft)' })
+  @UseGuards(AuthGuard)
+  @ApiBody({ type: CreateCollaborationDto })
+  @Post('create-draft-collaboration')
+  async createDraftCollaboration(
+    @Body() dto: CreateCollaborationDto,
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationDto> {
+    const company = await this.companyService.getCompany(userId);
+    const collab = await this.collaborationService.createDraftCollaboration(
+      dto,
+      company.id,
+    );
+    console.log('Collaboration created:', collab);
+    console.log('pp:', collab.productPlacements);
+    return CollaborationDto.fromEntity(collab);
+  }
+
+  @ApiOperation({ summary: 'Get collaboration by ID' })
+  @UseGuards(AuthGuard)
+  @Get('get-collaboration/:id')
+  async getCollaboration(@Param('id') id: number): Promise<CollaborationDto> {
+    const collab = await this.collaborationService.getCollaboration(id);
+    return CollaborationDto.fromEntity(collab);
+  }
+
+  @ApiOperation({ summary: 'Get all collaborations for the company' })
+  @UseGuards(AuthGuard)
+  @Get('collaborations')
+  async getCompanyCollaborations(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationDto[]> {
+    const collabs =
+      await this.collaborationService.getCollaborationsByCompany(userId);
+    return CollaborationDto.fromEntities(collabs);
+  }
+
+  /**
+   * Uploads multiple files for a specific collaboration.
+   * This will replace any existing files linked to the collaboration.
+   *
+   * @param collabId - The ID of the collaboration to update.
+   * @param files - Array of uploaded files.
+   * @returns List of uploaded file URLs.
+   */
+  @ApiOperation({ summary: 'Upload collaboration files (replace files[])' })
+  @ApiConsumes('multipart/form-data')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FilesInterceptor('files'))
+  @Post('upload-collaboration-files/:collaboration_id')
+  async uploadCollaborationFiles(
+    @Param('collaboration_id') collaborationId: number,
+    @UploadedFiles() files: Express.Multer.File[],
+  ): Promise<{ files: string[] }> {
+    const uploaded = await this.collaborationService.uploadCollaborationFiles(
+      collaborationId,
+      files,
+    );
+    return { files: uploaded };
+  }
+
+  @ApiOperation({ summary: 'Stream a collaboration file by filename' })
+  @ApiResponse({ status: 200, description: 'Returns a file stream' })
+  @UseGuards(AuthGuard)
+  @Get('collaboration-file/:filename')
+  async getCollaborationFile(
+    @Param('filename') filename: string,
+  ): Promise<StreamableFile> {
+    const file = await this.minioService.getFile(
+      BucketType.collaborations,
+      filename,
+    );
+    return new StreamableFile(file);
   }
 }
