@@ -16,6 +16,7 @@ import { FacebookRepository } from '../facebook/facebook.repository';
 import { FacebookService } from '../facebook/facebook.service';
 import { CollaborationRepository } from './repositories/collaboration.repository';
 import { CollaborationService } from './services/collaboration.service';
+import { PriceAlgorithmService } from '../price_algorithm/price_algorithm.service';
 
 @Module({
   providers: [
@@ -34,6 +35,7 @@ import { CollaborationService } from './services/collaboration.service';
     FacebookService,
     CollaborationRepository,
     CollaborationService,
+    PriceAlgorithmService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

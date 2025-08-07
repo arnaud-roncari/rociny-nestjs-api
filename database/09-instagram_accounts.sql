@@ -25,7 +25,8 @@ CREATE TABLE api.instagram_accounts (
     gender_female_percentage FLOAT, 
     top_cities TEXT[], 
     top_age_ranges TEXT[], 
-    last_media_url TEXT ,
+    last_media_url TEXT,
+    views_history JSONB,
     updated_at TIMESTAMPTZ DEFAULT current_timestamp
 
 );

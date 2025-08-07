@@ -6,6 +6,7 @@ import { FetchedInstagramAccountEntity } from './entities/fetched_instagram_acco
 import { InstagramAccountEntity } from './entities/instagram_account.entity';
 import { InstagramNotFoundException } from 'src/commons/errors/instagram-not-found';
 import { InstagramAlreadyExists } from 'src/commons/errors/instagram-already-exist';
+import { ViewsHistoryEntity } from './entities/views_history.entity';
 
 @Injectable()
 export class FacebookService {
@@ -97,7 +98,7 @@ export class FacebookService {
       throw new InstagramNotFoundException();
     }
 
-    /// Update limited by 1 every 24 hours
+    // Update limited by 1 every 24 hours
     if (
       instagram.updatedAt &&
       Date.now() - new Date(instagram.updatedAt).getTime() < 24 * 60 * 60 * 1000
@@ -108,14 +109,16 @@ export class FacebookService {
     const token = oauthUser.accessToken;
     const instagramId = instagram.instagramId;
 
-    const [insights, gender, city, age, media, profile] = await Promise.all([
-      this.facebookRepository.getInsights(instagramId, token),
-      this.facebookRepository.getGenderInsight(instagramId, token),
-      this.facebookRepository.getCityInsight(instagramId, token),
-      this.facebookRepository.getAgeInsight(instagramId, token),
-      this.facebookRepository.getMediaInsight(instagramId, token),
-      this.facebookRepository.getInstagramProfile(instagramId, token),
-    ]);
+    const [insights, gender, city, age, media, profile, viewsHistory] =
+      await Promise.all([
+        this.facebookRepository.getInsights(instagramId, token),
+        this.facebookRepository.getGenderInsight(instagramId, token),
+        this.facebookRepository.getCityInsight(instagramId, token),
+        this.facebookRepository.getAgeInsight(instagramId, token),
+        this.facebookRepository.getMediaInsight(instagramId, token),
+        this.facebookRepository.getInstagramProfile(instagramId, token),
+        this.facebookRepository.getViewsHistory(instagramId, token),
+      ]);
 
     await this.facebookRepository.updateInstagramAccount({
       userId: userId,
@@ -138,6 +141,7 @@ export class FacebookService {
       lastMediaUrl: media.lastMediaUrl,
       followersCount: profile.followersCount,
       profilePictureUrl: profile.profilePictureUrl,
+      viewsHistory: viewsHistory,
     });
   }
 }

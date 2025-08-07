@@ -9,6 +9,8 @@ import { CityInsightEntity } from './entities/city_insight.entity';
 import { AgeInsightEntity } from './entities/age_insight.entity';
 import { MediaInsightEntity } from './entities/media_insight.entity';
 import { InstagramProfileEntity } from './entities/instagram_profile.entity';
+import { ViewsHistoryEntity } from './entities/views_history.entity';
+import { exit } from 'process';
 
 @Injectable()
 export class FacebookRepository {
@@ -387,6 +389,7 @@ export class FacebookRepository {
     lastMediaUrl: string;
     followersCount: number;
     profilePictureUrl: string;
+    viewsHistory: ViewsHistoryEntity[];
   }): Promise<void> {
     const query = `
     UPDATE api.instagram_accounts
@@ -410,8 +413,9 @@ export class FacebookRepository {
       last_media_url = $17,
       followers_count = $18,
       profile_picture_url = $19,
+      views_history = $20, 
       updated_at = NOW()
-    WHERE user_id = $20
+    WHERE user_id = $21
   `;
 
     await this.postgresqlService.query(query, [
@@ -434,6 +438,7 @@ export class FacebookRepository {
       stats.lastMediaUrl,
       stats.followersCount,
       stats.profilePictureUrl,
+      JSON.stringify(ViewsHistoryEntity.toJsons(stats.viewsHistory)),
       stats.userId,
     ]);
   }
@@ -452,5 +457,48 @@ export class FacebookRepository {
     });
 
     return InstagramProfileEntity.fromResponse(response.data);
+  }
+
+  async getViewsHistory(
+    instagramId: string,
+    accessToken: string,
+  ): Promise<ViewsHistoryEntity[]> {
+    const mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media`;
+
+    const mediaRes = await axios.get(mediaUrl, {
+      params: {
+        fields: 'id,timestamp,media_type,media_product_type',
+        limit: 20,
+        access_token: accessToken,
+      },
+    });
+
+    const mediaList = mediaRes.data?.data ?? [];
+    const viewsHistory: ViewsHistoryEntity[] = [];
+
+    for (const media of mediaList) {
+      const { id, timestamp } = media;
+      const insightsRes = await axios.get(
+        `https://graph.facebook.com/v20.0/${id}/insights`,
+        {
+          params: {
+            metric: 'views',
+            access_token: accessToken,
+          },
+        },
+      );
+
+      const insights = insightsRes.data?.data ?? [];
+      const viewMetric = insights.find((m) => m.name === 'views');
+      const views = viewMetric?.values?.[0]?.value ?? 0;
+      if (views === 0) {
+        continue;
+      }
+      const date = new Date(timestamp);
+
+      viewsHistory.push(new ViewsHistoryEntity(date, views));
+    }
+
+    return viewsHistory;
   }
 }

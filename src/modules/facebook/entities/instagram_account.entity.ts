@@ -1,3 +1,5 @@
+import { ViewsHistoryEntity } from './views_history.entity';
+
 export class InstagramAccountEntity {
   id: number;
   userId: number;
@@ -28,9 +30,38 @@ export class InstagramAccountEntity {
   topCities: string[];
   topAgeRanges: string[];
 
+  viewsHistory: ViewsHistoryEntity[];
+
   updatedAt: Date | null;
 
-  constructor(parameters: InstagramAccountEntity) {
+  constructor(parameters: {
+    id: number;
+    userId: number;
+    instagramId: string;
+    name: string;
+    username: string;
+    profilePictureUrl: string | null;
+    followersCount: number | null;
+    engagementRate: number | null;
+    reach: number | null;
+    views: number | null;
+    totalInteractions: number | null;
+    profileViewRate: number | null;
+    profileViews: number | null;
+    websiteClicks: number | null;
+    linkClicks: number | null;
+    interactionPercentagePosts: number | null;
+    interactionPercentageReels: number | null;
+    postPercentage: number | null;
+    reelPercentage: number | null;
+    lastMediaUrl: string | null;
+    genderMalePercentage: number | null;
+    genderFemalePercentage: number | null;
+    topCities: string[];
+    topAgeRanges: string[];
+    viewsHistory: ViewsHistoryEntity[];
+    updatedAt: Date | null;
+  }) {
     Object.assign(this, parameters);
   }
 
@@ -62,7 +93,8 @@ export class InstagramAccountEntity {
       topCities: json.top_cities ?? [],
       topAgeRanges: json.top_age_ranges ?? [],
       lastMediaUrl: json.last_media_url ?? null,
-      updatedAt: json.updated_at ?? null,
+      updatedAt: json.updated_at ? new Date(json.updated_at) : null,
+      viewsHistory: ViewsHistoryEntity.fromJsons(json.views_history ?? []),
     });
   }
 
@@ -72,5 +104,41 @@ export class InstagramAccountEntity {
     return jsons
       .map((json) => InstagramAccountEntity.fromJson(json))
       .filter((e): e is InstagramAccountEntity => e !== null);
+  }
+
+  toJson(): any {
+    return {
+      id: this.id,
+      user_id: this.userId,
+      instagram_id: this.instagramId,
+      name: this.name,
+      username: this.username,
+      profile_picture_url: this.profilePictureUrl,
+      followers_count: this.followersCount,
+
+      engagement_rate: this.engagementRate,
+      reach: this.reach,
+      views: this.views,
+      total_interactions: this.totalInteractions,
+      profile_view_rate: this.profileViewRate,
+      profile_views: this.profileViews,
+      website_clicks: this.websiteClicks,
+      link_clicks: this.linkClicks,
+
+      interaction_percentage_posts: this.interactionPercentagePosts,
+      interaction_percentage_reels: this.interactionPercentageReels,
+      post_percentage: this.postPercentage,
+      reel_percentage: this.reelPercentage,
+
+      last_media_url: this.lastMediaUrl,
+
+      gender_male_percentage: this.genderMalePercentage,
+      gender_female_percentage: this.genderFemalePercentage,
+      top_cities: this.topCities,
+      top_age_ranges: this.topAgeRanges,
+
+      updated_at: this.updatedAt ? this.updatedAt.toISOString() : null,
+      views_history: ViewsHistoryEntity.toJsons(this.viewsHistory),
+    };
   }
 }

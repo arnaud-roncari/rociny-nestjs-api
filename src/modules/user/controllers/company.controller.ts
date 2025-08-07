@@ -47,6 +47,8 @@ import { CollaborationEntity } from '../entities/collaboration.entity';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { CollaborationDto } from '../dtos/collaboration.dto';
+import { PriceAlgorithmService } from 'src/modules/price_algorithm/price_algorithm.service';
+import { ProductPlacementType } from 'src/commons/enums/product_placement_type';
 
 @Controller('company')
 export class CompanyController {
@@ -56,6 +58,7 @@ export class CompanyController {
     private readonly facebookService: FacebookService,
     private readonly collaborationService: CollaborationService,
     private readonly minioService: MinioService,
+    private readonly priceAlgorithmService: PriceAlgorithmService,
   ) {}
 
   /**
@@ -436,6 +439,20 @@ export class CompanyController {
     return InstagramAccountDto.fromEntity(instagramAccount);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('calculate-product-placement-price/:user_id/:product_placement_type')
+  async calculateProductPlacementPrice(
+    @Param('user_id') userId: number,
+    @Param('product_placement_type') productPlacementType: string,
+  ): Promise<any> {
+    const price =
+      await this.priceAlgorithmService.calculateProductPlacementPrice(
+        userId,
+        productPlacementType as ProductPlacementType,
+      );
+    return { price };
+  }
+
   @ApiOperation({ summary: '' })
   @UseGuards(AuthGuard)
   @Get('get-influencer-completion-status/:user_id')
@@ -474,8 +491,6 @@ export class CompanyController {
       dto,
       company.id,
     );
-    console.log('Collaboration created:', collab);
-    console.log('pp:', collab.productPlacements);
     return CollaborationDto.fromEntity(collab);
   }
 
