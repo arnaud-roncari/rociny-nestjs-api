@@ -7,6 +7,8 @@ export class CompanyProfileCompletionStatusEntity {
   hasLegalDocuments: boolean;
   hasStripePaymentMethod: boolean;
   hasInstagramAccount: boolean;
+  hasBillingAddress: boolean;
+  hasTradeName: boolean;
 
   constructor(parameters: CompanyProfileCompletionStatusEntity) {
     Object.assign(this, parameters);

@@ -113,6 +113,53 @@ export class CompanyService {
     await this.companyRepository.updateName(userId, name);
   }
 
+  async updateTradeName(userId: number, tradeName: string): Promise<void> {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.stripeService.setCustomerTradeName(
+      user.stripeCustomerId,
+      tradeName,
+    );
+    await this.companyRepository.updateTradeName(userId, tradeName);
+  }
+  async updateBillingAddress(
+    userId: number,
+    city: string,
+    street: string,
+    postalCode: string,
+  ): Promise<void> {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.stripeService.setCustomerBillingAddress(
+      user.stripeCustomerId,
+      city,
+      street,
+      postalCode,
+    );
+    await this.companyRepository.updateBillingAddress(
+      userId,
+      city,
+      street,
+      postalCode,
+    );
+  }
+
+  async updateVATNumber(userId: number, vatNumber: string): Promise<void> {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.stripeService.setCustomerVat(user.stripeCustomerId, vatNumber);
+    await this.companyRepository.updateVATNumber(userId, vatNumber);
+  }
+
   /**
    * Updates the description of the user.
    *
@@ -466,6 +513,9 @@ export class CompanyService {
       hasName: !!company.name,
       hasDescription: !!company.description,
       hasDepartment: !!company.department,
+      hasTradeName: !!company.tradeName,
+      hasBillingAddress:
+        !!company.city && !!company.street && !!company.postalCode,
       hasSocialNetworks: socialNetworks.length > 0,
       hasLegalDocuments: await this.hasCompletedDocuments(userId),
       hasStripePaymentMethod: await this.hasCompletedStripe(userId),
@@ -486,7 +536,9 @@ export class CompanyService {
       profileCompletionStatus.hasSocialNetworks &&
       profileCompletionStatus.hasLegalDocuments &&
       profileCompletionStatus.hasStripePaymentMethod &&
-      profileCompletionStatus.hasInstagramAccount
+      profileCompletionStatus.hasInstagramAccount &&
+      profileCompletionStatus.hasBillingAddress &&
+      profileCompletionStatus.hasTradeName
     );
   }
 

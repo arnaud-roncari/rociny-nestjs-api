@@ -6,12 +6,19 @@ import { CollaborationNotFoundException } from 'src/commons/errors/collaboration
 import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { FileRequiredException } from 'src/commons/errors/file-required';
+import { CollaborationSummaryEntity } from '../entities/collaboration_summary.entity';
+import { CompanyEntity } from '../entities/company.entity';
+import { StripeService } from 'src/modules/stripe/stripe.service';
+import { InfluencerRepository } from '../repositories/influencer.repository';
+import { ReviewEntity } from '../entities/review.entity';
 
 @Injectable()
 export class CollaborationService {
   constructor(
     private readonly collaborationRepository: CollaborationRepository,
     private readonly minioService: MinioService,
+    private readonly stripeService: StripeService,
+    private readonly influencerRepository: InfluencerRepository,
   ) {}
 
   /**
@@ -122,5 +129,109 @@ export class CollaborationService {
     );
 
     return uploadedFiles;
+  }
+
+  async getSummariesByCompany(
+    companyId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    return this.collaborationRepository.getSummariesByCompany(companyId);
+  }
+
+  async cancelCollaboration(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'canceled_by_company',
+    );
+  }
+
+  async sendDraftCollaboration(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'sent_by_company',
+    );
+    /// Send notification ...
+  }
+
+  async supplyCollaboration(
+    company: CompanyEntity,
+    collaborationId: number,
+  ): Promise<string> {
+    let collaboration =
+      await this.collaborationRepository.findById(collaborationId);
+    let amount = collaboration.getPriceWithCommission();
+    let customerId = company.stripeCustomerId;
+    let pi = await this.stripeService.createPaymentIntent(
+      collaborationId,
+      amount,
+      customerId,
+    );
+
+    return pi.clientSecret;
+  }
+
+  async collaborationSupplied(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'in_progress',
+    );
+  }
+
+  async validateCollaboration(collaborationId: number): Promise<void> {
+    let collaboration =
+      await this.collaborationRepository.findById(collaborationId);
+    let influencer = await this.influencerRepository.getInfluencerById(
+      collaboration.influencerId,
+    );
+    let amount = collaboration.getPrice();
+    let destination = influencer.stripeAccountId;
+    await this.stripeService.transferToInfluencer(
+      destination,
+      amount,
+      collaborationId,
+    );
+
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'done',
+    );
+  }
+
+  async createReview(
+    collaborationId: number,
+    authorId: number,
+    reviewedId: number,
+    stars: number,
+    description: string,
+  ): Promise<void> {
+    await this.collaborationRepository.createReview(
+      collaborationId,
+      authorId,
+      reviewedId,
+      stars,
+      description,
+    );
+  }
+
+  async getReview(
+    collaborationId: number,
+    authorId: number,
+    reviewedId: number,
+  ): Promise<ReviewEntity | null> {
+    let r = await this.collaborationRepository.getReview(
+      collaborationId,
+      authorId,
+      reviewedId,
+    );
+    return r;
+  }
+
+  async getReviewsByAuthor(authorId: number): Promise<ReviewEntity[]> {
+    let r = await this.collaborationRepository.getReviewsByAuthor(authorId);
+    return r;
+  }
+
+  async getReviewsByReviewed(reviewedId: number): Promise<ReviewEntity[]> {
+    let r = await this.collaborationRepository.getReviewsByReviewed(reviewedId);
+    return r;
   }
 }

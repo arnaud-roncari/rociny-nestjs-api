@@ -11,7 +11,7 @@ CREATE TABLE api.influencers (
     target_audience TEXT[] DEFAULT '{}',
     --
     stripe_account_id TEXT NOT NULL,
+    vat_number TEXT,
     --
-    -- is_completed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

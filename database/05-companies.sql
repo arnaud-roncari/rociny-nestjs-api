@@ -7,6 +7,12 @@ CREATE TABLE api.companies (
     department TEXT,
     description TEXT,
     --
+    trade_name TEXT,
+    vat_number TEXT,
+    city TEXT,
+    street TEXT,
+    postal_code TEXT,
+    --
     stripe_customer_id TEXT NOT NULL,
     --
     created_at TIMESTAMPTZ DEFAULT current_timestamp

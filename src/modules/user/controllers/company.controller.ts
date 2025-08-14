@@ -43,12 +43,17 @@ import { InfluencerDto } from '../dtos/influencer.dto';
 import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
 import { CollaborationService } from '../services/collaboration.service';
 import { CreateCollaborationDto } from '../dtos/create-collaboration.dto';
-import { CollaborationEntity } from '../entities/collaboration.entity';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { CollaborationDto } from '../dtos/collaboration.dto';
 import { PriceAlgorithmService } from 'src/modules/price_algorithm/price_algorithm.service';
 import { ProductPlacementType } from 'src/commons/enums/product_placement_type';
+import { CollaborationSummaryDto } from '../dtos/collaboration-summary.dto';
+import { CreateReviewDto } from '../dtos/create-review.dto';
+import { ReviewDto } from '../dtos/review.dto';
+import { UpdateTradeNameDto } from '../dtos/update-trade-name.dto';
+import { UpdateVATNumberDto } from '../dtos/update-vat-number.dto';
+import { UpdateBillingAddress } from '../dtos/update-billing-address.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -113,6 +118,38 @@ export class CompanyController {
     @Body() body: UpdateNameDto,
   ): Promise<void> {
     await this.companyService.updateName(userId, body.name);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('update-trade-name')
+  async updateTradeName(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateTradeNameDto,
+  ): Promise<void> {
+    await this.companyService.updateTradeName(userId, body.trade_name);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('update-vat-number')
+  async updateVATNumber(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateVATNumberDto,
+  ): Promise<void> {
+    await this.companyService.updateVATNumber(userId, body.vat_number);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('update-billing-address')
+  async updateBillingAddress(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateBillingAddress,
+  ): Promise<void> {
+    await this.companyService.updateBillingAddress(
+      userId,
+      body.city,
+      body.street,
+      body.postal_code,
+    );
   }
 
   /**
@@ -502,6 +539,18 @@ export class CompanyController {
     return CollaborationDto.fromEntity(collab);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('get-collaboration-summaries')
+  async getCollaborationSummaries(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationSummaryDto[]> {
+    const company = await this.companyService.getCompany(userId);
+    const summaries = await this.collaborationService.getSummariesByCompany(
+      company.id,
+    );
+    return CollaborationSummaryDto.fromEntities(summaries);
+  }
+
   @ApiOperation({ summary: 'Get all collaborations for the company' })
   @UseGuards(AuthGuard)
   @Get('collaborations')
@@ -549,5 +598,104 @@ export class CompanyController {
       filename,
     );
     return new StreamableFile(file);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('collaboration/cancel/:collaboration_id')
+  async cancelCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<void> {
+    await this.collaborationService.cancelCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('send-draft-collaboration/:collaboration_id')
+  async sendDraftCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<void> {
+    await this.collaborationService.sendDraftCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('supply-collaboration/:collaboration_id')
+  async supplyCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+    @IdFromJWT() userId: number,
+  ): Promise<any> {
+    let company = await this.companyService.getCompany(userId);
+    let cs = await this.collaborationService.supplyCollaboration(
+      company,
+      collaborationId,
+    );
+    return { client_secret: cs };
+  }
+
+  @Post('collaboration-supplied')
+  async collaborationSupplied(@Body() body: any): Promise<any> {
+    /// Extract collaboration id
+    const transferGroup = (body as any)?.data?.object?.transfer_group ?? null;
+    const collaborationId = transferGroup?.split('_')[1];
+    await this.collaborationService.collaborationSupplied(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('validate-collaboration/:collaboration_id')
+  async validateCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<any> {
+    await this.collaborationService.validateCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('create-review')
+  async createReview(
+    @Body() body: CreateReviewDto,
+    @IdFromJWT() userId,
+  ): Promise<any> {
+    await this.collaborationService.createReview(
+      body.collaboration_id,
+      userId,
+      body.reviewed_id,
+      body.stars,
+      body.description,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-review/:collaboration_id/:author_id/:reviewed_id')
+  async getReview(
+    @Param('collaboration_id') collaborationId: number,
+    @Param('author_id') authorId: number,
+    @Param('reviewed_id') reviewedId: number,
+  ): Promise<any> {
+    let r = await this.collaborationService.getReview(
+      collaborationId,
+      authorId,
+      reviewedId,
+    );
+
+    if (r === null) {
+      return { review: null };
+    }
+
+    return { review: ReviewDto.fromEntity(r) };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-reviews/author/:author_id')
+  async getReviewsByAuthor(
+    @Param('author_id') authorId: number,
+  ): Promise<ReviewDto[]> {
+    let r = await this.collaborationService.getReviewsByAuthor(authorId);
+    return ReviewDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-reviews/reviewed/:reviewed_id')
+  async getReviewsByReviewed(
+    @Param('reviewed_id') reviewedId: number,
+  ): Promise<ReviewDto[]> {
+    let r = await this.collaborationService.getReviewsByReviewed(reviewedId);
+    return ReviewDto.fromEntities(r);
   }
 }

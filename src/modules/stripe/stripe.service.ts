@@ -52,7 +52,85 @@ export class StripeService implements OnModuleInit {
     return loginLink.url;
   }
 
+  async setConnectedVat(accountId: string, vatNumber: string) {
+    const list = await StripeService.stripe.taxIds.list(
+      { limit: 100 },
+      { stripeAccount: accountId },
+    );
+
+    for (const tax of list.data) {
+      if (tax.type === 'eu_vat') {
+        await StripeService.stripe.taxIds.del(tax.id, {
+          stripeAccount: accountId,
+        });
+      }
+    }
+
+    const taxId = await StripeService.stripe.taxIds.create(
+      { type: 'eu_vat', value: vatNumber },
+      { stripeAccount: accountId },
+    );
+
+    return taxId.id;
+  }
+
+  async hasConnectedVat(accountId: string) {
+    const list = await StripeService.stripe.taxIds.list(
+      { limit: 100 },
+      { stripeAccount: accountId },
+    );
+    return list.data.some((t) => t.type === 'eu_vat');
+  }
+
   // - - -
+
+  async setCustomerVat(customerId: string, vatNumber: string) {
+    const list = await StripeService.stripe.customers.listTaxIds(customerId, {
+      limit: 100,
+    });
+
+    for (const tax of list.data) {
+      if (tax.type === 'eu_vat') {
+        await StripeService.stripe.customers.deleteTaxId(customerId, tax.id);
+      }
+    }
+
+    const taxId = await StripeService.stripe.customers.createTaxId(customerId, {
+      type: 'eu_vat',
+      value: vatNumber,
+    });
+
+    return taxId.id;
+  }
+
+  async hasCustomerVat(customerId: string) {
+    const list = await StripeService.stripe.customers.listTaxIds(customerId, {
+      limit: 100,
+    });
+    return list.data.some((t) => t.type === 'eu_vat');
+  }
+
+  async setCustomerBillingAddress(
+    accountId: string,
+    city: string,
+    street: string,
+    postalCode: string,
+  ) {
+    await StripeService.stripe.customers.update(accountId, {
+      address: {
+        line1: street,
+        city: city,
+        postal_code: postalCode,
+        country: 'FR',
+      },
+    });
+  }
+
+  async setCustomerTradeName(accountId: string, tradeName: string) {
+    await StripeService.stripe.customers.update(accountId, {
+      name: tradeName,
+    });
+  }
 
   async createCustomer(
     email: string,
@@ -109,5 +187,64 @@ export class StripeService implements OnModuleInit {
     });
 
     return session.url;
+  }
+
+  async createPaymentIntent(
+    collaborationId: number,
+    amount: number,
+    customerId: string,
+  ): Promise<{ paymentIntentId: string; clientSecret: string }> {
+    const amountMinor = Math.round(amount * 100);
+
+    const pi = await StripeService.stripe.paymentIntents.create(
+      {
+        amount: amountMinor,
+        currency: 'eur',
+        customer: `${customerId}`,
+        automatic_payment_methods: { enabled: true },
+        transfer_group: `collaboration_${collaborationId}`,
+        metadata: {
+          collaborationId: collaborationId,
+          purpose: 'supply_collaboration',
+          appCustomerId: String(customerId),
+        },
+      },
+      {
+        idempotencyKey: `supply_collaboration_${collaborationId}_${amountMinor}`,
+      },
+    );
+
+    return { paymentIntentId: pi.id, clientSecret: pi.client_secret };
+  }
+
+  async transferToInfluencer(
+    destination: string,
+    amount: number,
+    collaborationId: number,
+  ): Promise<{ transferId: string; amountMinor: number }> {
+    const amountMinor = Math.round(amount * 100);
+
+    const transfer = await StripeService.stripe.transfers.create(
+      {
+        amount: amountMinor,
+        currency: 'eur',
+        destination: destination,
+        transfer_group: `collaboration_${collaborationId}`,
+        metadata: {
+          collaborationId: String(collaborationId),
+          purpose: 'payout_influencer',
+        },
+      },
+      {
+        idempotencyKey: `payout_influencer_${destination}_collaboration_${collaborationId}_${amountMinor}`,
+      },
+    );
+
+    return { transferId: transfer.id, amountMinor };
+  }
+
+  async getBalance(currency: string = 'eur'): Promise<any> {
+    const bal = await StripeService.stripe.balance.retrieve();
+    return bal;
   }
 }

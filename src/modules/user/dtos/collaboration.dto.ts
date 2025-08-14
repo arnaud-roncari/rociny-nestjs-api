@@ -36,6 +36,7 @@ export class CollaborationDto {
   influencer_id: number;
   title: string;
   status: string;
+  files: string[];
   created_at: Date;
 
   @Type(() => ProductPlacementDto)
@@ -48,6 +49,7 @@ export class CollaborationDto {
   static fromEntity(entity: CollaborationEntity): CollaborationDto {
     return new CollaborationDto({
       id: entity.id,
+      files: entity.files,
       company_id: entity.companyId,
       influencer_id: entity.influencerId,
       title: entity.title,

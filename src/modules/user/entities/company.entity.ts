@@ -6,6 +6,11 @@ export class CompanyEntity {
   department: string | null;
   description: string | null;
   stripeCustomerId: string;
+  tradeName: string;
+  city: string;
+  street: string;
+  postalCode: string;
+  vatNumber: string;
   createdAt: Date;
 
   constructor(parameters: CompanyEntity) {
@@ -22,6 +27,11 @@ export class CompanyEntity {
       userId: json.user_id,
       profilePicture: json.profile_picture,
       name: json.name,
+      tradeName: json.trade_name,
+      city: json.city,
+      street: json.street,
+      postalCode: json.postal_code,
+      vatNumber: json.vat_number,
       department: json.department,
       description: json.description,
       stripeCustomerId: json.stripe_customer_id,

@@ -19,11 +19,20 @@ export class InfluencerRepository {
    */
   async getInfluencer(userId: number): Promise<InfluencerEntity | null> {
     const query = `
-        SELECT * 
-        FROM api.influencers
-        WHERE user_id = $1
-        LIMIT 1
-      `;
+    SELECT 
+      i.*,
+      COALESCE(
+        json_agg(sn) FILTER (WHERE sn.id IS NOT NULL), 
+        '[]'
+      ) AS social_networks
+    FROM api.influencers i
+    LEFT JOIN api.social_networks sn 
+      ON sn.influencer_id = i.id
+    WHERE i.user_id = $1
+    GROUP BY i.id
+    LIMIT 1
+  `;
+
     const result = await this.postgresqlService.query(query, [userId]);
     return result.length > 0 ? InfluencerEntity.fromJson(result[0]) : null;
   }
@@ -159,6 +168,15 @@ export class InfluencerRepository {
         WHERE user_id = $2
       `;
     await this.postgresqlService.query(query, [name, userId]);
+  }
+
+  async updateVATNumber(userId: number, vatNumber: string): Promise<void> {
+    const query = `
+        UPDATE api.influencers
+        SET vat_number = $1
+        WHERE user_id = $2
+      `;
+    await this.postgresqlService.query(query, [vatNumber, userId]);
   }
 
   /**

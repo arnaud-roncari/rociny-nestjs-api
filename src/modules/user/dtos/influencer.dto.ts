@@ -13,6 +13,7 @@ export class InfluencerDto {
   readonly themes: string[];
   readonly target_audience: string[];
   readonly created_at: Date;
+  readonly vat_number: string | null;
   readonly social_networks: SocialNetworkDto[];
 
   constructor(parameters: InfluencerDto) {
@@ -26,6 +27,7 @@ export class InfluencerDto {
     return new InfluencerDto({
       id: influencer.id,
       user_id: influencer.userId,
+      vat_number: influencer.vatNumber,
       profile_picture: influencer.profilePicture,
       portfolio: influencer.portfolio,
       name: influencer.name,

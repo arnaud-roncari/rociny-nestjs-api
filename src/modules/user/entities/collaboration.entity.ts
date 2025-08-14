@@ -1,5 +1,16 @@
 import { ProductPlacementEntity } from './product_placement.entity';
 
+export interface CollaborationEntityParams {
+  id: number;
+  companyId: number;
+  influencerId: number;
+  title: string;
+  files: string[];
+  status: string;
+  createdAt: Date;
+  productPlacements: ProductPlacementEntity[];
+}
+
 export class CollaborationEntity {
   id: number;
   companyId: number;
@@ -10,7 +21,7 @@ export class CollaborationEntity {
   createdAt: Date;
   productPlacements: ProductPlacementEntity[];
 
-  constructor(params: CollaborationEntity) {
+  constructor(params: CollaborationEntityParams) {
     Object.assign(this, params);
   }
 
@@ -31,5 +42,17 @@ export class CollaborationEntity {
 
   static fromJsons(jsons: any[]): CollaborationEntity[] {
     return (jsons || []).map(CollaborationEntity.fromJson);
+  }
+
+  getPrice(): number {
+    return (this.productPlacements || []).reduce(
+      (sum, placement) => sum + (placement.price || 0),
+      0,
+    );
+  }
+
+  getPriceWithCommission(): number {
+    const basePrice = this.getPrice();
+    return basePrice * 1.05;
   }
 }

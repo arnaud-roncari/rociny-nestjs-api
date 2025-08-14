@@ -9,6 +9,8 @@ export class CompanyProfileCompletionStatusDto {
   readonly has_legal_documents: boolean;
   readonly has_stripe_payment_method: boolean;
   readonly has_instagram_account: boolean;
+  readonly has_trade_name: boolean;
+  readonly has_billing_address: boolean;
 
   constructor(parameters: CompanyProfileCompletionStatusDto) {
     Object.assign(this, parameters);
@@ -25,6 +27,8 @@ export class CompanyProfileCompletionStatusDto {
       has_legal_documents: entity.hasLegalDocuments,
       has_stripe_payment_method: entity.hasStripePaymentMethod,
       has_instagram_account: entity.hasInstagramAccount,
+      has_billing_address: entity.hasBillingAddress,
+      has_trade_name: entity.hasTradeName,
     });
   }
 }

@@ -79,6 +79,43 @@ export class CompanyRepository {
     await this.postgresqlService.query(query, [name, userId]);
   }
 
+  async updateVATNumber(userId: number, name: string): Promise<void> {
+    const query = `
+        UPDATE api.companies
+        SET vat_number = $1
+        WHERE user_id = $2
+      `;
+    await this.postgresqlService.query(query, [name, userId]);
+  }
+
+  async updateTradeName(userId: number, tradeName: string): Promise<void> {
+    const query = `
+        UPDATE api.companies
+        SET trade_name = $1
+        WHERE user_id = $2
+      `;
+    await this.postgresqlService.query(query, [tradeName, userId]);
+  }
+
+  async updateBillingAddress(
+    userId: number,
+    city: string,
+    street: string,
+    postalCode: string,
+  ): Promise<void> {
+    const query = `
+        UPDATE api.companies
+        SET city = $1, street = $2, postal_code = $3 
+        WHERE user_id = $4
+      `;
+    await this.postgresqlService.query(query, [
+      city,
+      street,
+      postalCode,
+      userId,
+    ]);
+  }
+
   /**
    * Update the department of an company.
    * @param userId - The user's id.

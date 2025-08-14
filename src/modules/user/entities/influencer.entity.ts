@@ -1,3 +1,5 @@
+import { SocialNetworkEntity } from './social_network.entity';
+
 export class InfluencerEntity {
   id: number;
   userId: number;
@@ -9,6 +11,8 @@ export class InfluencerEntity {
   stripeAccountId: string;
   themes: string[];
   targetAudience: string[];
+  socialNetworks: SocialNetworkEntity[];
+  vatNumber: string | null;
   createdAt: Date;
 
   constructor(parameters: InfluencerEntity) {
@@ -23,6 +27,7 @@ export class InfluencerEntity {
     return new InfluencerEntity({
       id: json.id,
       userId: json.user_id,
+      vatNumber: json.vat_number,
       profilePicture: json.profile_picture,
       portfolio: json.portfolio || [],
       name: json.name,
@@ -31,6 +36,7 @@ export class InfluencerEntity {
       description: json.description,
       themes: json.themes || [],
       targetAudience: json.target_audience || [],
+      socialNetworks: SocialNetworkEntity.fromJsons(json.social_networks || []),
       createdAt: json.created_at ? new Date(json.created_at) : new Date(),
     });
   }

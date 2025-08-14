@@ -36,7 +36,8 @@ export class MinioService implements OnModuleInit {
     file: Express.Multer.File,
     bucket: BucketType,
   ): Promise<string> {
-    const fileName = `${uuidv4()}${path.extname(file.originalname)}`;
+    const parsedName = path.parse(file.originalname).name;
+    const fileName = `${parsedName}-${uuidv4()}${path.extname(file.originalname)}`;
     await MinioService.minioClient.putObject(
       bucket,
       fileName,

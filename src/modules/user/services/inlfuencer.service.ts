@@ -220,6 +220,16 @@ export class InfluencerService {
     await this.influencerRepository.updateName(userId, name);
   }
 
+  async updateVATNumber(userId: number, vatNumber: string): Promise<void> {
+    const user = await this.influencerRepository.getInfluencer(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.stripeService.setConnectedVat(user.stripeAccountId, vatNumber);
+    await this.influencerRepository.updateVATNumber(userId, vatNumber);
+  }
+
   /**
    * Updates the description of the user.
    *

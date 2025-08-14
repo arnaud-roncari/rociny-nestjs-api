@@ -3,6 +3,9 @@ import { PostgresqlService } from 'src/modules/postgresql/postgresql.service';
 import { CreateCollaborationDto } from '../dtos/create-collaboration.dto';
 import { CollaborationEntity } from '../entities/collaboration.entity';
 import { ProductPlacementEntity } from '../entities/product_placement.entity';
+import { CollaborationSummaryEntity } from '../entities/collaboration_summary.entity';
+import { ReviewEntity } from '../entities/review.entity';
+import { CreateReviewDto } from '../dtos/create-review.dto';
 
 @Injectable()
 export class CollaborationRepository {
@@ -183,5 +186,93 @@ export class CollaborationRepository {
     WHERE id = $2
   `;
     await this.postgresqlService.query(query, [files, collabId]);
+  }
+
+  async getSummariesByCompany(
+    companyId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    const query = `
+    SELECT
+      i.name AS influencer_name,
+      i.user_id AS user_id,
+      i.profile_picture AS influencer_profile_picture,
+      c.title AS collaboration_title,
+      COALESCE(SUM(pp.price), 0) AS collaboration_price, 
+      c.status AS collaboration_status,
+      c.id AS collaboration_id,
+      COUNT(pp.id) AS placements_count
+    FROM api.collaborations c
+    JOIN api.influencers i ON i.id = c.influencer_id
+    LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
+    WHERE c.company_id = $1
+    GROUP BY c.id, i.name, i.user_id, i.profile_picture, c.title, c.status
+    ORDER BY c.created_at DESC
+  `;
+
+    const rows = await this.postgresqlService.query(query, [companyId]);
+    return CollaborationSummaryEntity.fromJsons(rows);
+  }
+
+  async getReview(
+    collaborationId: number,
+    authorId: number,
+    reviewedId: number,
+  ): Promise<ReviewEntity | null> {
+    const q = `
+      SELECT *
+      FROM api.reviews
+      WHERE collaboration_id = $1 AND author_id = $2 AND reviewed_id = $3
+      LIMIT 1
+    `;
+    const rows = await this.postgresqlService.query(q, [
+      collaborationId,
+      authorId,
+      reviewedId,
+    ]);
+    return rows[0] ? ReviewEntity.fromJson(rows[0]) : null;
+  }
+
+  async getReviewsByAuthor(authorId: number): Promise<ReviewEntity[]> {
+    const q = `
+      SELECT *
+      FROM api.reviews
+      WHERE author_id = $1
+      ORDER BY created_at DESC
+    `;
+    const rows = await this.postgresqlService.query(q, [authorId]);
+    return ReviewEntity.fromJsons(rows);
+  }
+
+  async getReviewsByReviewed(reviewedId: number): Promise<ReviewEntity[]> {
+    const q = `
+      SELECT *
+      FROM api.reviews
+      WHERE reviewed_id = $1
+      ORDER BY created_at DESC
+    `;
+    const rows = await this.postgresqlService.query(q, [reviewedId]);
+    return ReviewEntity.fromJsons(rows);
+  }
+
+  async createReview(
+    collaborationId: number,
+    authorId: number,
+    reviewedId: number,
+    stars: number,
+    description: string,
+  ): Promise<number> {
+    const q = `
+      INSERT INTO api.reviews (collaboration_id, author_id, reviewed_id, stars, description)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `;
+    const rows = await this.postgresqlService.query(q, [
+      collaborationId,
+      authorId,
+      reviewedId,
+      stars,
+      description,
+    ]);
+    return rows[0].id as number;
   }
 }

@@ -9,6 +9,11 @@ export class CompanyDto {
   readonly name: string | null;
   readonly department: string | null;
   readonly description: string | null;
+  readonly trade_name: string | null;
+  readonly city: string | null;
+  readonly street: string | null;
+  readonly postal_code: string | null;
+  readonly vat_number: string | null;
   readonly created_at: Date;
   readonly social_networks: SocialNetworkDto[];
 
@@ -25,6 +30,11 @@ export class CompanyDto {
       user_id: company.userId,
       profile_picture: company.profilePicture,
       name: company.name,
+      city: company.city,
+      street: company.street,
+      trade_name: company.tradeName,
+      postal_code: company.postalCode,
+      vat_number: company.vatNumber,
       department: company.department,
       description: company.description,
       created_at: company.createdAt,

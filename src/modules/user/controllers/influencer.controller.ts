@@ -34,6 +34,7 @@ import { InfluencerDto } from '../dtos/influencer.dto';
 import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
 import { CollaborationEntity } from '../entities/collaboration.entity';
 import { CollaborationService } from '../services/collaboration.service';
+import { UpdateVATNumberDto } from '../dtos/update-vat-number.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -183,6 +184,15 @@ export class InfluencerController {
     @Body() body: UpdateNameDto,
   ): Promise<void> {
     await this.influencerService.updateName(userId, body.name);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('update-vat-number')
+  async updateVATNumber(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateVATNumberDto,
+  ): Promise<void> {
+    await this.influencerService.updateVATNumber(userId, body.vat_number);
   }
 
   /**
