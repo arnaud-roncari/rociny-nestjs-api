@@ -78,4 +78,24 @@ export class MinioService implements OnModuleInit {
   async removeFile(bucket: BucketType, fileName: string): Promise<void> {
     await MinioService.minioClient.removeObject(bucket, fileName);
   }
+
+  async uploadBuffer(
+    buffer: Buffer,
+    originalName: string,
+    bucket: BucketType,
+    contentType = 'application/pdf',
+  ): Promise<string> {
+    const parsed = path.parse(originalName);
+    const fileName = `${parsed.name}-${uuidv4()}${parsed.ext || '.pdf'}`;
+
+    await MinioService.minioClient.putObject(
+      bucket,
+      fileName,
+      buffer,
+      buffer.length,
+      { 'Content-Type': contentType },
+    );
+
+    return fileName;
+  }
 }

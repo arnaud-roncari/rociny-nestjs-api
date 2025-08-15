@@ -27,6 +27,17 @@ export class CompanyRepository {
     return result.length > 0 ? CompanyEntity.fromJson(result[0]) : null;
   }
 
+  async getCompanyById(id: number): Promise<CompanyEntity | null> {
+    const query = `
+          SELECT * 
+          FROM api.companies
+          WHERE id = $1
+          LIMIT 1
+        `;
+    const result = await this.postgresqlService.query(query, [id]);
+    return result.length > 0 ? CompanyEntity.fromJson(result[0]) : null;
+  }
+
   /**
    * Create a new compaany.
    * @param userId - The user's id.

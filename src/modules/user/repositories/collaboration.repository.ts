@@ -77,6 +77,31 @@ export class CollaborationRepository {
   }
 
   /**
+   * Updates only the invoice fields of a collaboration.
+   *
+   * @param id - The ID of the collaboration to update.
+   * @param rocinyInvoice - Rociny invoice filename or URL.
+   * @param influencerInvoice - Influencer invoice filename or URL.
+   */
+  async updateCollaborationInvoices(
+    id: number,
+    rocinyInvoice: string,
+    influencerInvoice: string,
+  ): Promise<void> {
+    const query = `
+    UPDATE api.collaborations
+    SET rociny_invoice = $1,
+        influencer_invoice = $2
+    WHERE id = $3
+  `;
+    await this.postgresqlService.query(query, [
+      rocinyInvoice,
+      influencerInvoice,
+      id,
+    ]);
+  }
+
+  /**
    * Fetches all product placements linked to a specific collaboration.
    *
    * @param collaborationId - The ID of the collaboration.

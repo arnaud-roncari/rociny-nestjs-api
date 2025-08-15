@@ -5,5 +5,7 @@ CREATE TABLE api.collaborations (
     title TEXT NOT NULL,
     files TEXT[] DEFAULT '{}',
     status TEXT NOT NULL,
+        rociny_invoice TEXT,
+    influencer_invoice TEXT,
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

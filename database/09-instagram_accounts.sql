@@ -27,6 +27,5 @@ CREATE TABLE api.instagram_accounts (
     top_age_ranges TEXT[], 
     last_media_url TEXT,
     views_history JSONB,
-    updated_at TIMESTAMPTZ DEFAULT current_timestamp
-
+    updated_at TIMESTAMPTZ 
 );

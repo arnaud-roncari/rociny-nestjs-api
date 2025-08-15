@@ -622,9 +622,8 @@ export class CompanyController {
     @Param('collaboration_id') collaborationId: number,
     @IdFromJWT() userId: number,
   ): Promise<any> {
-    let company = await this.companyService.getCompany(userId);
     let cs = await this.collaborationService.supplyCollaboration(
-      company,
+      userId,
       collaborationId,
     );
     return { client_secret: cs };

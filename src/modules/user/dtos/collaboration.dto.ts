@@ -1,3 +1,4 @@
+// dtos/collaboration.dto.ts
 import { Type } from 'class-transformer';
 import { CollaborationEntity } from '../entities/collaboration.entity';
 import { ProductPlacementEntity } from '../entities/product_placement.entity';
@@ -37,6 +38,8 @@ export class CollaborationDto {
   title: string;
   status: string;
   files: string[];
+  rociny_invoice?: string | null;
+  influencer_invoice?: string | null;
   created_at: Date;
 
   @Type(() => ProductPlacementDto)
@@ -54,6 +57,8 @@ export class CollaborationDto {
       influencer_id: entity.influencerId,
       title: entity.title,
       status: entity.status,
+      rociny_invoice: entity.rocinyInvoice ?? null,
+      influencer_invoice: entity.influencerInvoice ?? null,
       created_at: entity.createdAt,
       product_placements: ProductPlacementDto.fromEntities(
         entity.productPlacements,
