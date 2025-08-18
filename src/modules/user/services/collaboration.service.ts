@@ -14,6 +14,7 @@ import { ReviewEntity } from '../entities/review.entity';
 import { CompanyRepository } from '../repositories/company.repository';
 import { kCommission } from 'src/commons/constants';
 import axios from 'axios';
+import internal from 'stream';
 
 @Injectable()
 export class CollaborationService {
@@ -26,7 +27,8 @@ export class CollaborationService {
   ) {}
 
   /**
-   * Creates a new collaboration with the default status 'draft'.
+   * Creates a new collaboration with the default status 'draft'
+   * and immediately generates Rociny & Influencer quotes.
    *
    * @param dto - The data used to create the collaboration.
    * @returns The created collaboration entity.
@@ -45,9 +47,22 @@ export class CollaborationService {
     if (!collab) {
       throw new CollaborationNotFoundException();
     }
-    return collab;
+
+    // Generate draft quotes
+    await this.generateAndStoreQuotes(collab);
+
+    const c = await this.collaborationRepository.findById(id);
+
+    return c;
   }
 
+  /**
+   * Creates a new collaboration with the default status 'sent_by_company'
+   * and immediately generates Rociny & Influencer quotes.
+   *
+   * @param dto - The data used to create the collaboration.
+   * @returns The created collaboration entity.
+   */
   async createCollaboration(
     dto: CreateCollaborationDto,
     companyId: number,
@@ -62,7 +77,74 @@ export class CollaborationService {
     if (!collab) {
       throw new CollaborationNotFoundException();
     }
-    return collab;
+
+    // Generate draft quotes
+    await this.generateAndStoreQuotes(collab);
+
+    const c = await this.collaborationRepository.findById(id);
+
+    return c;
+  }
+
+  /**
+   * Helper to generate Rociny & Influencer quotes and store them in DB.
+   */
+  private async generateAndStoreQuotes(
+    collab: CollaborationEntity,
+  ): Promise<void> {
+    const [influencerData, company] = await Promise.all([
+      this.influencerRepository.getInfluencerById(collab.influencerId),
+      this.companyRepository.getCompanyById(collab.companyId),
+    ]);
+
+    const baseAmount = collab.getPrice();
+    const commission = baseAmount * kCommission;
+
+    // Create quotes
+    const [platformQuote, influencerQuote] = await Promise.all([
+      this.stripeService.createPlatformInvoice(
+        company.stripeCustomerId,
+        commission,
+        true, // isQuote
+      ),
+      this.stripeService.createInfluencerInvoice(
+        company,
+        influencerData,
+        collab.productPlacements,
+        true, // isQuote
+      ),
+    ]);
+
+    // Download PDFs
+    const [platformQuotePdf, influencerQuotePdf] = await Promise.all([
+      axios.get<ArrayBuffer>(platformQuote.pdf, {
+        responseType: 'arraybuffer',
+      }),
+      axios.get<ArrayBuffer>(influencerQuote.pdf, {
+        responseType: 'arraybuffer',
+      }),
+    ]);
+
+    // Store PDFs in Minio
+    const [PQName, IQName] = await Promise.all([
+      this.minioService.uploadBuffer(
+        Buffer.from(platformQuotePdf.data),
+        platformQuote.id,
+        BucketType.invoices,
+      ),
+      this.minioService.uploadBuffer(
+        Buffer.from(influencerQuotePdf.data),
+        influencerQuote.id,
+        BucketType.invoices,
+      ),
+    ]);
+
+    // Update DB with quote references
+    await this.collaborationRepository.updateCollaborationQuotes(
+      collab.id,
+      PQName,
+      IQName,
+    );
   }
 
   /**
@@ -141,6 +223,14 @@ export class CollaborationService {
     return this.collaborationRepository.getSummariesByCompany(companyId);
   }
 
+  async getSummariesByInfluencer(
+    influencerId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    let r =
+      await this.collaborationRepository.getSummariesByInfluencer(influencerId);
+    return r;
+  }
+
   async cancelCollaboration(collaborationId: number): Promise<void> {
     await this.collaborationRepository.updateCollaborationStatus(
       collaborationId,
@@ -167,7 +257,7 @@ export class CollaborationService {
   async supplyCollaboration(
     userId: number,
     collaborationId: number,
-  ): Promise<string> {
+  ): Promise<any> {
     // Retrieve collaboration details from DB
     const collaboration =
       await this.collaborationRepository.findById(collaborationId);
@@ -209,7 +299,10 @@ export class CollaborationService {
     );
 
     // Return the client secret for frontend to complete payment
-    return paymentIntent.clientSecret;
+    return {
+      clientSecret: paymentIntent.clientSecret,
+      ephemeralKey: paymentIntent.ephemeralKey,
+    };
   }
 
   async collaborationSupplied(collaborationId: number): Promise<void> {
@@ -240,6 +333,7 @@ export class CollaborationService {
     // 2. Calculate payment amounts
     const baseAmount = collaboration.getPrice();
     const commission = baseAmount * kCommission;
+
     const hasInfluencerVAT = influencerData.vatNumber !== null;
     const totalInfluencerAmount = hasInfluencerVAT
       ? baseAmount * 1.2 // Adds 20% VAT
@@ -345,5 +439,68 @@ export class CollaborationService {
   async getReviewsByReviewed(reviewedId: number): Promise<ReviewEntity[]> {
     let r = await this.collaborationRepository.getReviewsByReviewed(reviewedId);
     return r;
+  }
+
+  async getPlatformQuote(collaborationId: number): Promise<internal.Readable> {
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const file = await this.minioService.getFile(
+      BucketType.invoices,
+      c.platformQuote,
+    );
+    return file;
+  }
+
+  async getPlatformInvoice(
+    collaborationId: number,
+  ): Promise<internal.Readable> {
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const file = await this.minioService.getFile(
+      BucketType.invoices,
+      c.platformInvoice,
+    );
+    return file;
+  }
+
+  async getInfluencerInvoice(
+    collaborationId: number,
+  ): Promise<internal.Readable> {
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const file = await this.minioService.getFile(
+      BucketType.invoices,
+      c.influencerInvoice,
+    );
+    return file;
+  }
+
+  async getInfluencerQuote(
+    collaborationId: number,
+  ): Promise<internal.Readable> {
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const file = await this.minioService.getFile(
+      BucketType.invoices,
+      c.influencerQuote,
+    );
+    return file;
+  }
+
+  async acceptCollaboration(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'waiting_for_company_payment',
+    );
+  }
+
+  async refuseCollaboration(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'refused_by_influencer',
+    );
+  }
+
+  async endCollaboration(collaborationId: number): Promise<void> {
+    await this.collaborationRepository.updateCollaborationStatus(
+      collaborationId,
+      'pending_company_validation',
+    );
   }
 }

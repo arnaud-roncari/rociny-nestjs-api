@@ -103,6 +103,16 @@ export class CompanyController {
     return new StreamableFile(stream);
   }
 
+  @ApiOperation({ summary: 'Stream user profile picture' })
+  @Get('get-profile-picture/:filename')
+  async getProfilePicturebyFilename(
+    @Param('filename') filename: string,
+  ): Promise<StreamableFile> {
+    const stream =
+      await this.companyService.getProfilePictureByFilename(filename);
+    return new StreamableFile(stream);
+  }
+
   /**
    * Updates the name of the currently authenticated user.
    *
@@ -626,7 +636,7 @@ export class CompanyController {
       userId,
       collaborationId,
     );
-    return { client_secret: cs };
+    return { client_secret: cs.clientSecret, ephemeral_key: cs.ephemeralKey };
   }
 
   @Post('collaboration-supplied')
@@ -696,5 +706,42 @@ export class CompanyController {
   ): Promise<ReviewDto[]> {
     let r = await this.collaborationService.getReviewsByReviewed(reviewedId);
     return ReviewDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-platform-quote/:collaboration_id')
+  async getPlatformQuote(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getPlatformQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-platform-invoice/:collaboration_id')
+  async getPlatformInvoice(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getPlatformInvoice(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-quote/:collaboration_id')
+  async getInfluencerQuote(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getInfluencerQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-invoice/:collaboration_id')
+  async getInfluencerInvoice(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f =
+      await this.collaborationService.getInfluencerInvoice(collaborationId);
+    return new StreamableFile(f);
   }
 }

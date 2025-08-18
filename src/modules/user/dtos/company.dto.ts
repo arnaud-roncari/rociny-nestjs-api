@@ -15,6 +15,8 @@ export class CompanyDto {
   readonly postal_code: string | null;
   readonly vat_number: string | null;
   readonly created_at: Date;
+  readonly stripe_customer_id: string;
+
   readonly social_networks: SocialNetworkDto[];
 
   constructor(parameters: CompanyDto) {
@@ -38,6 +40,7 @@ export class CompanyDto {
       department: company.department,
       description: company.description,
       created_at: company.createdAt,
+      stripe_customer_id: company.stripeCustomerId,
       social_networks: SocialNetworkDto.fromEntities(socialNetworks),
     });
   }

@@ -7,7 +7,9 @@ export interface CollaborationEntityParams {
   title: string;
   files: string[];
   status: string;
-  rocinyInvoice?: string | null;
+  platformQuote?: string | null;
+  influencerQuote?: string | null;
+  platformInvoice?: string | null;
   influencerInvoice?: string | null;
   createdAt: Date;
   productPlacements: ProductPlacementEntity[];
@@ -20,8 +22,10 @@ export class CollaborationEntity {
   title: string;
   files: string[];
   status: string;
-  rocinyInvoice?: string | null;
+  platformInvoice?: string | null;
   influencerInvoice?: string | null;
+  platformQuote?: string | null;
+  influencerQuote?: string | null;
   createdAt: Date;
   productPlacements: ProductPlacementEntity[];
 
@@ -37,8 +41,10 @@ export class CollaborationEntity {
       title: json.title,
       files: json.files || [],
       status: json.status,
-      rocinyInvoice: json.rociny_invoice ?? null,
+      platformInvoice: json.platform_invoice ?? null,
       influencerInvoice: json.influencer_invoice ?? null,
+      platformQuote: json.platform_quote ?? null,
+      influencerQuote: json.influencer_quote ?? null,
       createdAt: new Date(json.created_at),
       productPlacements: ProductPlacementEntity.fromJsons(
         json.product_placements ?? [],

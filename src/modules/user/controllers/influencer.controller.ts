@@ -35,11 +35,22 @@ import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile
 import { CollaborationEntity } from '../entities/collaboration.entity';
 import { CollaborationService } from '../services/collaboration.service';
 import { UpdateVATNumberDto } from '../dtos/update-vat-number.dto';
+import { CollaborationSummaryDto } from '../dtos/collaboration-summary.dto';
+import { CompanyService } from '../services/company.service';
+import { MinioService } from 'src/modules/minio/minio.service';
+import { BucketType } from 'src/commons/enums/bucket_type';
+import { CreateReviewDto } from '../dtos/create-review.dto';
+import { ReviewDto } from '../dtos/review.dto';
+import { CollaborationDto } from '../dtos/collaboration.dto';
+import { CompanyDto } from '../dtos/company.dto';
+import { CompanyProfileCompletionStatusDto } from '../dtos/company-profile-completion-status.dto';
 
 @Controller('influencer')
 export class InfluencerController {
   constructor(
     private readonly influencerService: InfluencerService,
+    private readonly companyService: CompanyService,
+    private readonly minioService: MinioService,
     private readonly facebookService: FacebookService,
     private readonly collaborationService: CollaborationService,
   ) {}
@@ -91,12 +102,15 @@ export class InfluencerController {
    */
   @ApiOperation({ summary: 'Stream user profile picture' })
   @UseGuards(AuthGuard)
-  @Get('get-profile-picture')
+  @Get('get-company-profile-picture/:filename')
   async getProfilePicture(
-    @IdFromJWT() userId: number,
+    @Param('filename') filename: string,
   ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getProfilePicture(userId);
-    return new StreamableFile(stream);
+    const file = await this.minioService.getFile(
+      BucketType.company_pictures,
+      filename,
+    );
+    return new StreamableFile(file);
   }
 
   /**
@@ -540,5 +554,168 @@ export class InfluencerController {
     @IdFromJWT() userId: number,
   ): Promise<CollaborationEntity[]> {
     return this.collaborationService.getCollaborationsByInfluencer(userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-platform-quote/:collaboration_id')
+  async getPlatformQuote(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getPlatformQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-platform-invoice/:collaboration_id')
+  async getPlatformInvoice(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getPlatformInvoice(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-quote/:collaboration_id')
+  async getInfluencerQuote(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f = await this.collaborationService.getInfluencerQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-invoice/:collaboration_id')
+  async getInfluencerInvoice(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    let f =
+      await this.collaborationService.getInfluencerInvoice(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-collaboration-summaries')
+  async getCollaborationSummaries(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationSummaryDto[]> {
+    const influencer = await this.influencerService.getInfluencer(userId);
+    const summaries = await this.collaborationService.getSummariesByInfluencer(
+      influencer.id,
+    );
+    return CollaborationSummaryDto.fromEntities(summaries);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('accept-collaboration/:collaboration_id')
+  async acceptCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<void> {
+    await this.collaborationService.acceptCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('refuse-collaboration/:collaboration_id')
+  async refuseCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<void> {
+    await this.collaborationService.refuseCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('end-collaboration/:collaboration_id')
+  async endCollaboration(
+    @Param('collaboration_id') collaborationId: number,
+  ): Promise<void> {
+    await this.collaborationService.endCollaboration(collaborationId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('create-review')
+  async createReview(
+    @Body() body: CreateReviewDto,
+    @IdFromJWT() userId,
+  ): Promise<any> {
+    await this.collaborationService.createReview(
+      body.collaboration_id,
+      userId,
+      body.reviewed_id,
+      body.stars,
+      body.description,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-review/:collaboration_id/:author_id/:reviewed_id')
+  async getReview(
+    @Param('collaboration_id') collaborationId: number,
+    @Param('author_id') authorId: number,
+    @Param('reviewed_id') reviewedId: number,
+  ): Promise<any> {
+    let r = await this.collaborationService.getReview(
+      collaborationId,
+      authorId,
+      reviewedId,
+    );
+
+    if (r === null) {
+      return { review: null };
+    }
+
+    return { review: ReviewDto.fromEntity(r) };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-reviews/author/:author_id')
+  async getReviewsByAuthor(
+    @Param('author_id') authorId: number,
+  ): Promise<ReviewDto[]> {
+    let r = await this.collaborationService.getReviewsByAuthor(authorId);
+    return ReviewDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-reviews/reviewed/:reviewed_id')
+  async getReviewsByReviewed(
+    @Param('reviewed_id') reviewedId: number,
+  ): Promise<ReviewDto[]> {
+    let r = await this.collaborationService.getReviewsByReviewed(reviewedId);
+    return ReviewDto.fromEntities(r);
+  }
+
+  @ApiOperation({ summary: 'Get collaboration by ID' })
+  @UseGuards(AuthGuard)
+  @Get('get-collaboration/:id')
+  async getCollaboration(@Param('id') id: number): Promise<CollaborationDto> {
+    const collab = await this.collaborationService.getCollaboration(id);
+    return CollaborationDto.fromEntity(collab);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-company/:user_id')
+  async getCompany(@Param('user_id') userId: number): Promise<any> {
+    let company = await this.companyService.getCompany(userId);
+    let socialNetworks = await this.companyService.getSocialNetworks(userId);
+    return CompanyDto.fromEntity(company, socialNetworks);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-company-completion-status/:user_id')
+  async getCompletionStatus(@Param('user_id') userId: number): Promise<any> {
+    let e = await this.companyService.getProfileCompletionStatus(userId);
+    return CompanyProfileCompletionStatusDto.fromEntity(e);
+  }
+
+  @ApiOperation({ summary: '' })
+  @UseGuards(AuthGuard)
+  @Get('get-company-instagram-statistics/:user_id')
+  async getInfluencerInstagramStatistics(
+    @Param('user_id') userId: number,
+  ): Promise<any> {
+    await this.facebookService.refreshInstagramStatistics(userId);
+    const instagramAccount =
+      await this.facebookService.getInstagramAccount(userId);
+    return InstagramAccountDto.fromEntity(instagramAccount);
   }
 }

@@ -249,7 +249,11 @@ export class StripeService implements OnModuleInit {
     collaborationId: number,
     amount: number,
     customerId: string,
-  ): Promise<{ paymentIntentId: string; clientSecret: string }> {
+  ): Promise<{
+    paymentIntentId: string;
+    clientSecret: string;
+    ephemeralKey: string;
+  }> {
     const amountMinor = Math.round(amount * 100);
     const pi = await StripeService.stripe.paymentIntents.create(
       {
@@ -268,7 +272,17 @@ export class StripeService implements OnModuleInit {
         idempotencyKey: `supply_collaboration_${collaborationId}_${amountMinor}`,
       },
     );
-    return { paymentIntentId: pi.id, clientSecret: pi.client_secret };
+
+    const ephemeralKey = await StripeService.stripe.ephemeralKeys.create(
+      { customer: customerId },
+      { apiVersion: '2025-04-30.basil' },
+    );
+
+    return {
+      paymentIntentId: pi.id,
+      clientSecret: pi.client_secret,
+      ephemeralKey: ephemeralKey.secret,
+    };
   }
 
   /**
@@ -308,7 +322,11 @@ export class StripeService implements OnModuleInit {
   /**
    * Creates an invoice for Rociny's commission, including platform VAT number.
    */
-  async createPlatformInvoice(customerId: string, amount: number) {
+  async createPlatformInvoice(
+    customerId: string,
+    amount: number,
+    isQuote: boolean = false,
+  ) {
     const amountCents = Math.round(amount * 100);
 
     const invoice = await StripeService.stripe.invoices.create({
@@ -316,6 +334,9 @@ export class StripeService implements OnModuleInit {
       collection_method: 'send_invoice',
       days_until_due: 30,
       custom_fields: [{ name: 'TVA', value: StripeService.platformVATNumber }],
+      ...(isQuote
+        ? { footer: 'Ce document est un devis et ne vaut pas facture.' }
+        : {}),
     });
 
     await StripeService.stripe.invoiceItems.create({
@@ -324,12 +345,17 @@ export class StripeService implements OnModuleInit {
       currency: 'eur',
       amount: amountCents,
       tax_rates: [StripeService.taxRateId],
-      description: 'Commission',
+      description: isQuote ? 'Commission (devis)' : 'Commission',
     });
 
     const finalized = await StripeService.stripe.invoices.finalizeInvoice(
       invoice.id,
     );
+
+    await StripeService.stripe.invoices.pay(finalized.id, {
+      paid_out_of_band: true,
+    });
+
     return {
       id: finalized.id,
       url: finalized.hosted_invoice_url,
@@ -344,6 +370,7 @@ export class StripeService implements OnModuleInit {
     company: CompanyEntity,
     influencer: InfluencerEntity,
     placements: ProductPlacementEntity[],
+    isQuote: boolean = false,
   ) {
     let taxRateId: string | undefined;
 
@@ -382,6 +409,9 @@ export class StripeService implements OnModuleInit {
         customer: customer.id,
         collection_method: 'send_invoice',
         days_until_due: 30,
+        ...(isQuote
+          ? { footer: 'Ce document est un devis et ne vaut pas facture.' }
+          : {}),
         ...(influencer.vatNumber
           ? {
               custom_fields: [
@@ -396,13 +426,14 @@ export class StripeService implements OnModuleInit {
     // Add product placements
     for (const placement of placements) {
       const description = this.mapPlacementTypeToLabel(placement.type);
+      const amountCents = Math.round(placement.price * 100);
       await StripeService.stripe.invoiceItems.create(
         {
           customer: customer.id,
           invoice: invoice.id,
           currency: 'eur',
-          amount: Math.round(placement.price * 100),
-          description,
+          amount: amountCents,
+          description: isQuote ? `${description} (devis)` : description,
           ...(taxRateId ? { tax_rates: [taxRateId] } : {}),
         },
         { stripeAccount: influencer.stripeAccountId },
@@ -414,6 +445,13 @@ export class StripeService implements OnModuleInit {
       invoice.id,
       { stripeAccount: influencer.stripeAccountId },
     );
+
+    await StripeService.stripe.invoices.pay(
+      finalized.id,
+      { paid_out_of_band: true },
+      { stripeAccount: influencer.stripeAccountId },
+    );
+
     return {
       id: finalized.id,
       url: finalized.hosted_invoice_url,

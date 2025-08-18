@@ -90,13 +90,38 @@ export class CollaborationRepository {
   ): Promise<void> {
     const query = `
     UPDATE api.collaborations
-    SET rociny_invoice = $1,
+    SET platform_invoice = $1,
         influencer_invoice = $2
     WHERE id = $3
   `;
     await this.postgresqlService.query(query, [
       rocinyInvoice,
       influencerInvoice,
+      id,
+    ]);
+  }
+
+  /**
+   * Updates only the quote fields of a collaboration.
+   *
+   * @param id - The ID of the collaboration to update.
+   * @param rocinyQuote - Rociny quote filename or URL.
+   * @param influencerQuote - Influencer quote filename or URL.
+   */
+  async updateCollaborationQuotes(
+    id: number,
+    rocinyQuote: string,
+    influencerQuote: string,
+  ): Promise<void> {
+    const query = `
+    UPDATE api.collaborations
+    SET platform_quote = $1,
+        influencer_quote = $2
+    WHERE id = $3
+  `;
+    await this.postgresqlService.query(query, [
+      rocinyQuote,
+      influencerQuote,
       id,
     ]);
   }
@@ -219,22 +244,58 @@ export class CollaborationRepository {
     const query = `
     SELECT
       i.name AS influencer_name,
-      i.user_id AS user_id,
+      i.user_id AS influencer_user_id,
       i.profile_picture AS influencer_profile_picture,
       c.title AS collaboration_title,
       COALESCE(SUM(pp.price), 0) AS collaboration_price, 
       c.status AS collaboration_status,
       c.id AS collaboration_id,
-      COUNT(pp.id) AS placements_count
+      COUNT(pp.id) AS placements_count,
+      co.name AS company_name,
+      co.profile_picture AS company_profile_picture,
+      co.user_id AS company_user_id
     FROM api.collaborations c
     JOIN api.influencers i ON i.id = c.influencer_id
+    JOIN api.companies co ON co.id = c.company_id
     LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
     WHERE c.company_id = $1
-    GROUP BY c.id, i.name, i.user_id, i.profile_picture, c.title, c.status
+    GROUP BY 
+      c.id, i.name, i.user_id, i.profile_picture, c.title, c.status,
+      co.name, co.profile_picture, co.user_id
     ORDER BY c.created_at DESC
   `;
 
     const rows = await this.postgresqlService.query(query, [companyId]);
+    return CollaborationSummaryEntity.fromJsons(rows);
+  }
+  async getSummariesByInfluencer(
+    influencerId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    const query = `
+    SELECT
+      i.name AS influencer_name,
+      i.user_id AS influencer_user_id,
+      i.profile_picture AS influencer_profile_picture,
+      c.title AS collaboration_title,
+      COALESCE(SUM(pp.price), 0) AS collaboration_price, 
+      c.status AS collaboration_status,
+      c.id AS collaboration_id,
+      COUNT(pp.id) AS placements_count,
+      co.name AS company_name,
+      co.profile_picture AS company_profile_picture,
+      co.user_id AS company_user_id
+    FROM api.collaborations c
+    JOIN api.influencers i ON i.id = c.influencer_id
+    JOIN api.companies co ON co.id = c.company_id
+    LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
+    WHERE c.influencer_id = $1
+    GROUP BY 
+      c.id, i.name, i.user_id, i.profile_picture, c.title, c.status,
+      co.name, co.profile_picture, co.user_id
+    ORDER BY c.created_at DESC
+  `;
+
+    const rows = await this.postgresqlService.query(query, [influencerId]);
     return CollaborationSummaryEntity.fromJsons(rows);
   }
 
