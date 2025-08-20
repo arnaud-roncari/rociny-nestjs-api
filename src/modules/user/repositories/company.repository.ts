@@ -14,26 +14,43 @@ export class CompanyRepository {
   /**
    * Fetch a company by user id.
    * @param userId - The user's id.
-   * @returns The user as an entity, or null if not found.
+   * @returns The company as an entity, or null if not found.
    */
   async getCompany(userId: number): Promise<CompanyEntity | null> {
     const query = `
-          SELECT * 
-          FROM api.companies
-          WHERE user_id = $1
-          LIMIT 1
-        `;
+    SELECT 
+      c.*,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
+    FROM api.companies c
+    LEFT JOIN api.collaborations col ON col.company_id = c.id
+    LEFT JOIN api.reviews r ON r.reviewed_id = c.user_id
+    WHERE c.user_id = $1
+    GROUP BY c.id
+    LIMIT 1
+  `;
     const result = await this.postgresqlService.query(query, [userId]);
     return result.length > 0 ? CompanyEntity.fromJson(result[0]) : null;
   }
 
+  /**
+   * Fetch a company by id.
+   * @param id - The company id.
+   * @returns The company as an entity, or null if not found.
+   */
   async getCompanyById(id: number): Promise<CompanyEntity | null> {
     const query = `
-          SELECT * 
-          FROM api.companies
-          WHERE id = $1
-          LIMIT 1
-        `;
+    SELECT 
+      c.*,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
+    FROM api.companies c
+    LEFT JOIN api.collaborations col ON col.company_id = c.id
+    LEFT JOIN api.reviews r ON r.reviewed_id = c.user_id
+    WHERE c.id = $1
+    GROUP BY c.id
+    LIMIT 1
+  `;
     const result = await this.postgresqlService.query(query, [id]);
     return result.length > 0 ? CompanyEntity.fromJson(result[0]) : null;
   }

@@ -17,7 +17,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ProfilePictureUpdatedDto } from '../dtos/profile-picture-updated.dto';
 import { IdFromJWT } from 'src/commons/decorators/id-from-jwt.decorators';
 import { AuthGuard } from 'src/commons/guards/auth.guard';
-import { InfluencerService } from '../services/inlfuencer.service';
+import { InfluencerService } from '../services/influencer.service';
 import { PortfolioUpdatedDto } from '../dtos/portfolio-updated.dto';
 import { UpdateNameDto } from '../dtos/update-name.dto';
 import { UpdateDescriptionDto } from '../dtos/update-description.dto';
@@ -44,6 +44,12 @@ import { ReviewDto } from '../dtos/review.dto';
 import { CollaborationDto } from '../dtos/collaboration.dto';
 import { CompanyDto } from '../dtos/company.dto';
 import { CompanyProfileCompletionStatusDto } from '../dtos/company-profile-completion-status.dto';
+import { ReviewSummaryDto } from '../dtos/review_summary.dto';
+import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
+import { CollaboratedCompanyDto } from '../dtos/collaborated_company.dto';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
+import { InfluencerSummaryDto } from '../dtos/influencer-summary.dto';
+import { InfluencerStatisticsDto } from '../dtos/influencer_statistics.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -717,5 +723,54 @@ export class InfluencerController {
     const instagramAccount =
       await this.facebookService.getInstagramAccount(userId);
     return InstagramAccountDto.fromEntity(instagramAccount);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-review-summaries')
+  async getReviewSummaries(
+    @IdFromJWT() userId: number,
+  ): Promise<ReviewSummaryDto[]> {
+    let r =
+      await this.collaborationService.getInfluencerReviewSummaries(userId);
+    return ReviewSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-collaborated-companies')
+  async getCollaboratedCompanies(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaboratedCompanyDto[]> {
+    let r = await this.collaborationService.getCollaboratedCompanies(userId);
+    return CollaboratedCompanyDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-company-collaborated-influencer/:company_user_id')
+  async getCompanyCollaboratedInfluencers(
+    @Param('company_user_id') userId: number,
+  ): Promise<InfluencerSummaryDto[]> {
+    let r = await this.collaborationService.getCollaboratedInfluencers(userId);
+    return InfluencerSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-dashboard/statistics')
+  async getStatistics(
+    @IdFromJWT() userId: number,
+  ): Promise<InfluencerStatisticsDto> {
+    let r = await this.influencerService.getStatistics(userId);
+    return InfluencerStatisticsDto.fromEntity(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-dashboard/collaborations')
+  async getRecentCollaborations(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaborationSummaryDto[]> {
+    let r =
+      await this.collaborationService.getRecentCollaborationsByInfluencerId(
+        userId,
+      );
+    return CollaborationSummaryDto.fromEntities(r);
   }
 }

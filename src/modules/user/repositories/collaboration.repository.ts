@@ -6,6 +6,9 @@ import { ProductPlacementEntity } from '../entities/product_placement.entity';
 import { CollaborationSummaryEntity } from '../entities/collaboration_summary.entity';
 import { ReviewEntity } from '../entities/review.entity';
 import { CreateReviewDto } from '../dtos/create-review.dto';
+import { ReviewSummaryEntity } from '../entities/review_summary.entity';
+import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
 
 @Injectable()
 export class CollaborationRepository {
@@ -243,24 +246,28 @@ export class CollaborationRepository {
   ): Promise<CollaborationSummaryEntity[]> {
     const query = `
     SELECT
-      i.name AS influencer_name,
-      i.user_id AS influencer_user_id,
-      i.profile_picture AS influencer_profile_picture,
-      c.title AS collaboration_title,
-      COALESCE(SUM(pp.price), 0) AS collaboration_price, 
-      c.status AS collaboration_status,
-      c.id AS collaboration_id,
-      COUNT(pp.id) AS placements_count,
-      co.name AS company_name,
-      co.profile_picture AS company_profile_picture,
-      co.user_id AS company_user_id
+      i.name               AS influencer_name,
+      i.user_id            AS influencer_user_id,
+      i.profile_picture    AS influencer_profile_picture,
+      c.title              AS collaboration_title,
+      COALESCE(SUM(pp.price), 0)    AS collaboration_price, 
+      c.status             AS collaboration_status,
+      c.id                 AS collaboration_id,
+      COALESCE(SUM(pp.quantity), 0) AS placements_count,
+      co.name              AS company_name,
+      co.profile_picture   AS company_profile_picture,
+      co.user_id           AS company_user_id
     FROM api.collaborations c
-    JOIN api.influencers i ON i.id = c.influencer_id
-    JOIN api.companies co ON co.id = c.company_id
-    LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
+    JOIN api.influencers i 
+      ON i.id = c.influencer_id
+    JOIN api.companies co 
+      ON co.id = c.company_id
+    LEFT JOIN api.product_placements pp 
+      ON pp.collaboration_id = c.id
     WHERE c.company_id = $1
     GROUP BY 
-      c.id, i.name, i.user_id, i.profile_picture, c.title, c.status,
+      c.id, i.name, i.user_id, i.profile_picture, 
+      c.title, c.status,
       co.name, co.profile_picture, co.user_id
     ORDER BY c.created_at DESC
   `;
@@ -268,29 +275,34 @@ export class CollaborationRepository {
     const rows = await this.postgresqlService.query(query, [companyId]);
     return CollaborationSummaryEntity.fromJsons(rows);
   }
+
   async getSummariesByInfluencer(
     influencerId: number,
   ): Promise<CollaborationSummaryEntity[]> {
     const query = `
     SELECT
-      i.name AS influencer_name,
-      i.user_id AS influencer_user_id,
-      i.profile_picture AS influencer_profile_picture,
-      c.title AS collaboration_title,
-      COALESCE(SUM(pp.price), 0) AS collaboration_price, 
-      c.status AS collaboration_status,
-      c.id AS collaboration_id,
-      COUNT(pp.id) AS placements_count,
-      co.name AS company_name,
-      co.profile_picture AS company_profile_picture,
-      co.user_id AS company_user_id
+      i.name               AS influencer_name,
+      i.user_id            AS influencer_user_id,
+      i.profile_picture    AS influencer_profile_picture,
+      c.title              AS collaboration_title,
+      COALESCE(SUM(pp.price), 0)    AS collaboration_price, 
+      c.status             AS collaboration_status,
+      c.id                 AS collaboration_id,
+      COALESCE(SUM(pp.quantity), 0) AS placements_count,
+      co.name              AS company_name,
+      co.profile_picture   AS company_profile_picture,
+      co.user_id           AS company_user_id
     FROM api.collaborations c
-    JOIN api.influencers i ON i.id = c.influencer_id
-    JOIN api.companies co ON co.id = c.company_id
-    LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
+    JOIN api.influencers i 
+      ON i.id = c.influencer_id
+    JOIN api.companies co 
+      ON co.id = c.company_id
+    LEFT JOIN api.product_placements pp 
+      ON pp.collaboration_id = c.id
     WHERE c.influencer_id = $1
     GROUP BY 
-      c.id, i.name, i.user_id, i.profile_picture, c.title, c.status,
+      c.id, i.name, i.user_id, i.profile_picture, 
+      c.title, c.status,
       co.name, co.profile_picture, co.user_id
     ORDER BY c.created_at DESC
   `;
@@ -360,5 +372,149 @@ export class CollaborationRepository {
       description,
     ]);
     return rows[0].id as number;
+  }
+
+  async getInfluencerReviewSummaries(
+    userId: number,
+  ): Promise<ReviewSummaryEntity[]> {
+    const q = `
+    SELECT u.id AS "user_id",
+           c.name,
+           c.profile_picture AS "profile_picture",
+           r.description
+    FROM api.reviews r
+    JOIN api.companies c ON r.author_id = c.user_id
+    JOIN api.users u ON u.id = c.user_id
+    WHERE r.reviewed_id = $1
+      AND r.description IS NOT NULL
+      AND r.description <> ''
+  `;
+    const rows = await this.postgresqlService.query(q, [userId]);
+    return ReviewSummaryEntity.fromJsons(rows);
+  }
+
+  async getCompanyReviewSummaries(
+    userId: number,
+  ): Promise<ReviewSummaryEntity[]> {
+    const q = `
+    SELECT u.id AS "user_id",
+           i.name,
+           i.profile_picture AS "profile_picture",
+           r.description
+    FROM api.reviews r
+    JOIN api.influencers i ON r.author_id = i.user_id
+    JOIN api.users u ON u.id = i.user_id
+    WHERE r.reviewed_id = $1
+      AND r.description IS NOT NULL
+      AND r.description <> ''
+  `;
+    const rows = await this.postgresqlService.query(q, [userId]);
+    return ReviewSummaryEntity.fromJsons(rows);
+  }
+
+  async getCollaboratedCompany(
+    influencerUserId: number,
+  ): Promise<CollaboratedCompanyEntity[]> {
+    const q = `
+    SELECT DISTINCT c.id,
+           c.user_id,
+           c.name,
+           c.profile_picture
+    FROM api.collaborations col
+    JOIN api.companies c ON col.company_id = c.id
+    WHERE col.influencer_id = (
+      SELECT id FROM api.influencers WHERE user_id = $1
+    )
+  `;
+    const rows = await this.postgresqlService.query(q, [influencerUserId]);
+    return CollaboratedCompanyEntity.fromJsons(rows);
+  }
+
+  async getCollaboratedInfluencers(
+    companyUserId: number,
+  ): Promise<InfluencerSummary[]> {
+    const q = `
+    SELECT 
+      i.id,
+      i.user_id,
+      i.name,
+      i.profile_picture,
+      i.portfolio,
+      insta.followers_count,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
+    FROM api.collaborations col
+    JOIN api.influencers i ON col.influencer_id = i.id
+    JOIN api.instagram_accounts insta ON insta.user_id = i.user_id
+    LEFT JOIN api.reviews r ON r.reviewed_id = i.user_id
+    WHERE col.company_id = (
+      SELECT id FROM api.companies WHERE user_id = $1
+    )
+    GROUP BY i.id, i.user_id, i.name, i.profile_picture, i.portfolio, insta.followers_count
+  `;
+
+    const rows = await this.postgresqlService.query(q, [companyUserId]);
+    return InfluencerSummary.fromJsons(rows);
+  }
+
+  /**
+   * Get the average stars of an influencer by their user_id,
+   * based only on "done" collaborations.
+   * @param userId - The user id of the influencer.
+   * @returns The average stars (number), or 0 if no reviews exist.
+   */
+  async getInfluencerAverageStars(userId: number): Promise<number> {
+    const query = `
+    SELECT COALESCE(AVG(r.stars), 0)::float AS average_stars
+    FROM api.reviews r
+    JOIN api.collaborations c ON r.collaboration_id = c.id
+    JOIN api.influencers i ON i.id = c.influencer_id
+    WHERE i.user_id = $1
+      AND c.status = 'done'
+  `;
+
+    const rows = await this.postgresqlService.query(query, [userId]);
+    return rows.length > 0 ? rows[0].average_stars : 0;
+  }
+
+  async getRecentCollaborationsByInfluencerId(
+    influencerUserId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    const query = `
+    SELECT 
+      i.user_id            AS influencer_user_id,
+      comp.user_id         AS company_user_id,
+      i.name               AS influencer_name,
+      i.profile_picture    AS influencer_profile_picture,
+      comp.name            AS company_name,
+      comp.profile_picture AS company_profile_picture,
+      col.title            AS collaboration_title,
+      COALESCE(SUM(pp.price), 0) AS collaboration_price,
+      col.id               AS collaboration_id,
+      col.status           AS collaboration_status,
+      COALESCE(SUM(pp.quantity), 0) AS placements_count
+    FROM api.collaborations col
+    JOIN api.influencers i 
+      ON col.influencer_id = i.id
+    JOIN api.companies comp 
+      ON col.company_id = comp.id
+    LEFT JOIN api.product_placements pp 
+      ON pp.collaboration_id = col.id
+    WHERE i.user_id = $1
+      AND col.created_at >= NOW() - INTERVAL '30 days'
+    GROUP BY 
+      i.user_id, 
+      comp.user_id, 
+      i.name, 
+      i.profile_picture, 
+      comp.name, 
+      comp.profile_picture, 
+      col.title, 
+      col.id, 
+      col.status
+    ORDER BY col.created_at DESC
+  `;
+    const rows = await this.postgresqlService.query(query, [influencerUserId]);
+    return CollaborationSummaryEntity.fromJsons(rows);
   }
 }

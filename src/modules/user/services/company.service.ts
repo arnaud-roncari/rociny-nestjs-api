@@ -108,6 +108,17 @@ export class CompanyService {
     return file;
   }
 
+  async getInfluencerProfilePicture(
+    filename: string,
+  ): Promise<internal.Readable> {
+    const file = await this.minioService.getFile(
+      BucketType.influencer_pictures,
+      filename,
+    );
+
+    return file;
+  }
+
   /**
    * Updates the name of the user.
    *

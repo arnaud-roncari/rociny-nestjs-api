@@ -15,6 +15,9 @@ export class InfluencerEntity {
   vatNumber: string | null;
   createdAt: Date;
 
+  collaborationAmount: number;
+  averageStars: number;
+
   constructor(parameters: InfluencerEntity) {
     Object.assign(this, parameters);
   }
@@ -38,6 +41,9 @@ export class InfluencerEntity {
       targetAudience: json.target_audience || [],
       socialNetworks: SocialNetworkEntity.fromJsons(json.social_networks || []),
       createdAt: json.created_at ? new Date(json.created_at) : new Date(),
+
+      collaborationAmount: json.collaboration_amount || 0,
+      averageStars: parseFloat(json.average_stars) || 0,
     });
   }
 
@@ -48,9 +54,9 @@ export class InfluencerEntity {
 
     const entities: InfluencerEntity[] = [];
     for (const json of jsons) {
-      const entitie = InfluencerEntity.fromJson(json);
-      if (entitie) {
-        entities.push(entitie);
+      const entity = InfluencerEntity.fromJson(json);
+      if (entity) {
+        entities.push(entity);
       }
     }
     return entities;

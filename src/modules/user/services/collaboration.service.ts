@@ -15,6 +15,9 @@ import { CompanyRepository } from '../repositories/company.repository';
 import { kCommission } from 'src/commons/constants';
 import axios from 'axios';
 import internal from 'stream';
+import { ReviewSummaryEntity } from '../entities/review_summary.entity';
+import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
+import { InfluencerSummary } from '../entities/influencer_summary.entity';
 
 @Injectable()
 export class CollaborationService {
@@ -502,5 +505,46 @@ export class CollaborationService {
       collaborationId,
       'pending_company_validation',
     );
+  }
+
+  async getInfluencerReviewSummaries(
+    userId: number,
+  ): Promise<ReviewSummaryEntity[]> {
+    let r =
+      await this.collaborationRepository.getInfluencerReviewSummaries(userId);
+    return r;
+  }
+
+  async getCompanyReviewSummaries(
+    userId: number,
+  ): Promise<ReviewSummaryEntity[]> {
+    let r =
+      await this.collaborationRepository.getCompanyReviewSummaries(userId);
+    return r;
+  }
+  async getCollaboratedCompanies(
+    influencerUserId: number,
+  ): Promise<CollaboratedCompanyEntity[]> {
+    return this.collaborationRepository.getCollaboratedCompany(
+      influencerUserId,
+    );
+  }
+
+  async getCollaboratedInfluencers(
+    companyUserId: number,
+  ): Promise<InfluencerSummary[]> {
+    return this.collaborationRepository.getCollaboratedInfluencers(
+      companyUserId,
+    );
+  }
+
+  async getRecentCollaborationsByInfluencerId(
+    userId: number,
+  ): Promise<CollaborationSummaryEntity[]> {
+    let r =
+      await this.collaborationRepository.getRecentCollaborationsByInfluencerId(
+        userId,
+      );
+    return r;
   }
 }

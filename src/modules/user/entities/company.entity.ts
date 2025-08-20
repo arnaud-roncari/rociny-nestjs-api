@@ -13,6 +13,9 @@ export class CompanyEntity {
   vatNumber: string;
   createdAt: Date;
 
+  collaborationAmount: number;
+  averageStars: number;
+
   constructor(parameters: CompanyEntity) {
     Object.assign(this, parameters);
   }
@@ -36,6 +39,11 @@ export class CompanyEntity {
       description: json.description,
       stripeCustomerId: json.stripe_customer_id,
       createdAt: json.created_at ? new Date(json.created_at) : new Date(),
+      collaborationAmount: json.collaboration_amount ?? 0,
+      averageStars:
+        typeof json.average_stars === 'number'
+          ? json.average_stars
+          : parseFloat(json.average_stars) || 0,
     });
   }
 
@@ -44,13 +52,8 @@ export class CompanyEntity {
       return [];
     }
 
-    const entities: CompanyEntity[] = [];
-    for (const json of jsons) {
-      const entitie = CompanyEntity.fromJson(json);
-      if (entitie) {
-        entities.push(entitie);
-      }
-    }
-    return entities;
+    return jsons
+      .map((json) => CompanyEntity.fromJson(json))
+      .filter((entity): entity is CompanyEntity => entity !== null);
   }
 }

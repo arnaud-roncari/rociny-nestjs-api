@@ -17,6 +17,9 @@ export class CompanyDto {
   readonly created_at: Date;
   readonly stripe_customer_id: string;
 
+  readonly collaboration_amount: number;
+  readonly average_stars: number;
+
   readonly social_networks: SocialNetworkDto[];
 
   constructor(parameters: CompanyDto) {
@@ -41,6 +44,8 @@ export class CompanyDto {
       description: company.description,
       created_at: company.createdAt,
       stripe_customer_id: company.stripeCustomerId,
+      collaboration_amount: company.collaborationAmount,
+      average_stars: company.averageStars,
       social_networks: SocialNetworkDto.fromEntities(socialNetworks),
     });
   }

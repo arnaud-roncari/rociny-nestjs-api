@@ -7,13 +7,14 @@ import { LegalDocumentType } from 'src/commons/enums/legal_document_type';
 import { LegalDocumentStatus } from 'src/commons/enums/legal_document_status';
 import { LegalDocumentEntity } from '../entities/legal_document.entity';
 import { InfluencerSummary } from '../entities/influencer_summary.entity';
+import { InfluencerStatisticsEntity } from '../entities/influencer_statistics.entity';
 
 @Injectable()
 export class InfluencerRepository {
   constructor(private readonly postgresqlService: PostgresqlService) {}
 
   /**
-   * Fetch a influencer by user id.
+   * Fetch an influencer by user id.
    * @param userId - The user's id.
    * @returns The user as an entity, or null if not found.
    */
@@ -24,10 +25,16 @@ export class InfluencerRepository {
       COALESCE(
         json_agg(sn) FILTER (WHERE sn.id IS NOT NULL), 
         '[]'
-      ) AS social_networks
+      ) AS social_networks,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
     FROM api.influencers i
     LEFT JOIN api.social_networks sn 
       ON sn.influencer_id = i.id
+    LEFT JOIN api.collaborations col 
+      ON col.influencer_id = i.id
+    LEFT JOIN api.reviews r 
+      ON r.reviewed_id = i.user_id
     WHERE i.user_id = $1
     GROUP BY i.id
     LIMIT 1
@@ -46,11 +53,20 @@ export class InfluencerRepository {
     influencerId: number,
   ): Promise<InfluencerEntity | null> {
     const query = `
-      SELECT *
-      FROM api.influencers
-      WHERE id = $1
-      LIMIT 1
-    `;
+    SELECT 
+      i.*,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
+    FROM api.influencers i
+    LEFT JOIN api.collaborations col 
+      ON col.influencer_id = i.id
+    LEFT JOIN api.reviews r 
+      ON r.reviewed_id = i.user_id
+    WHERE i.id = $1
+    GROUP BY i.id
+    LIMIT 1
+  `;
+
     const result = await this.postgresqlService.query(query, [influencerId]);
     return result.length > 0 ? InfluencerEntity.fromJson(result[0]) : null;
   }
@@ -448,10 +464,14 @@ export class InfluencerRepository {
       i.profile_picture,
       i.portfolio,
       i.name,
-      insta.followers_count
+      insta.followers_count,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
     FROM api.influencers i
     JOIN api.social_networks sn ON sn.influencer_id = i.id
     JOIN api.instagram_accounts insta ON insta.user_id = i.user_id
+    LEFT JOIN api.collaborations col ON col.influencer_id = i.id
+    LEFT JOIN api.reviews r ON r.reviewed_id = i.user_id
     WHERE 
       i.profile_picture IS NOT NULL
       AND i.name IS NOT NULL
@@ -491,10 +511,14 @@ export class InfluencerRepository {
       i.profile_picture,
       i.portfolio,
       i.name,
-      insta.followers_count
+      insta.followers_count,
+      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(AVG(r.stars), 0) AS average_stars
     FROM api.influencers i
     JOIN api.social_networks sn ON sn.influencer_id = i.id
     JOIN api.instagram_accounts insta ON insta.user_id = i.user_id
+    LEFT JOIN api.collaborations col ON col.influencer_id = i.id
+    LEFT JOIN api.reviews r ON r.reviewed_id = i.user_id
     WHERE 
       i.profile_picture IS NOT NULL
       AND i.name IS NOT NULL
@@ -559,5 +583,60 @@ export class InfluencerRepository {
 
     const result = await this.postgresqlService.query(finalQuery, values);
     return result.map((row) => InfluencerSummary.fromJson(row));
+  }
+
+  /**
+   * Increment profile views by inserting a new record into influencer_profile_views.
+   * @param userId - The influencer's user ID.
+   * @param companyId - The ID of the company viewing the profile.
+   */
+  async incrementProfileViews(userId: number): Promise<void> {
+    const query = `
+    INSERT INTO api.influencer_profile_views (influencer_id, viewed_at)
+    SELECT i.id, NOW()
+    FROM api.influencers i
+    WHERE i.user_id = $1
+  `;
+    await this.postgresqlService.query(query, [userId]);
+  }
+
+  async getStatistics(userId: number): Promise<InfluencerStatisticsEntity> {
+    const query = `
+    WITH last_30_days_collaborations AS (
+      SELECT *
+      FROM api.collaborations
+      WHERE influencer_id = (SELECT id FROM api.influencers WHERE user_id = $1)
+        AND created_at >= NOW() - INTERVAL '30 days'
+        AND status = 'done'
+    )
+    SELECT 
+      -- total revenue from product placements
+      COALESCE(SUM(pp.price), 0) AS revenue,
+      
+      -- average rating from reviews on these collaborations
+      COALESCE(AVG(r.stars), 0) AS average_rating,
+      
+      -- profile views in the last 30 days
+      (
+        SELECT COUNT(*) 
+        FROM api.influencer_profile_views pv
+        JOIN api.influencers i ON i.id = pv.influencer_id
+        WHERE i.user_id = $1
+          AND pv.viewed_at >= NOW() - INTERVAL '30 days'
+      ) AS profile_views,
+      
+      -- number of collaborations
+      COUNT(c.*) AS collaborations_count,
+      
+      -- number of placements
+      COALESCE(COUNT(pp.id), 0) AS placements_count
+      
+    FROM last_30_days_collaborations c
+    LEFT JOIN api.reviews r ON r.collaboration_id = c.id
+    LEFT JOIN api.product_placements pp ON pp.collaboration_id = c.id
+  `;
+
+    const result = await this.postgresqlService.query(query, [userId]);
+    return InfluencerStatisticsEntity.fromJson(result[0]);
   }
 }

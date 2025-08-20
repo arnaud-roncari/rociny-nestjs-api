@@ -15,6 +15,8 @@ export class InfluencerDto {
   readonly created_at: Date;
   readonly vat_number: string | null;
   readonly social_networks: SocialNetworkDto[];
+  readonly collaboration_amount: number;
+  readonly average_stars: number;
 
   constructor(parameters: InfluencerDto) {
     Object.assign(this, parameters);
@@ -37,6 +39,8 @@ export class InfluencerDto {
       target_audience: influencer.targetAudience,
       created_at: influencer.createdAt,
       social_networks: SocialNetworkDto.fromEntities(socialNetworks),
+      collaboration_amount: influencer.collaborationAmount,
+      average_stars: influencer.averageStars,
     });
   }
 }

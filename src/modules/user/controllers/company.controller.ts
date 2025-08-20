@@ -38,7 +38,7 @@ import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { SearchInfluencersByThemeDto } from '../dtos/search-influencers-by-theme.dto';
 import { InfluencerSummaryDto } from '../dtos/influencer-summary.dto';
 import { SearchInfluencersByFiltersDto } from '../dtos/search-influencers-by-filters.dto';
-import { InfluencerService } from '../services/inlfuencer.service';
+import { InfluencerService } from '../services/influencer.service';
 import { InfluencerDto } from '../dtos/influencer.dto';
 import { InfluencerProfileCompletionStatusDto } from '../dtos/influencer-profile-completion-status.dto';
 import { CollaborationService } from '../services/collaboration.service';
@@ -54,6 +54,9 @@ import { ReviewDto } from '../dtos/review.dto';
 import { UpdateTradeNameDto } from '../dtos/update-trade-name.dto';
 import { UpdateVATNumberDto } from '../dtos/update-vat-number.dto';
 import { UpdateBillingAddress } from '../dtos/update-billing-address.dto';
+import { ReviewSummaryDto } from '../dtos/review_summary.dto';
+import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
+import { CollaboratedCompanyDto } from '../dtos/collaborated_company.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -110,6 +113,15 @@ export class CompanyController {
   ): Promise<StreamableFile> {
     const stream =
       await this.companyService.getProfilePictureByFilename(filename);
+    return new StreamableFile(stream);
+  }
+
+  @Get('get-influencer-profile-picture/:filename')
+  async getInfluencerProfilePicture(
+    @Param('filename') filename: string,
+  ): Promise<StreamableFile> {
+    const stream =
+      await this.companyService.getInfluencerProfilePicture(filename);
     return new StreamableFile(stream);
   }
 
@@ -467,10 +479,15 @@ export class CompanyController {
 
   @ApiOperation({ summary: '' })
   @UseGuards(AuthGuard)
-  @Get('get-influencer/:user_id')
-  async getInfluencer(@Param('user_id') userId: number): Promise<any> {
-    let influencer = await this.influencerService.getInfluencer(userId);
-    let socialNetworks = await this.influencerService.getSocialNetworks(userId);
+  @Get('get-influencer/:influencer_user_id')
+  async getInfluencer(
+    @Param('influencer_user_id') influencerUserId: number,
+  ): Promise<any> {
+    let influencer =
+      await this.influencerService.getInfluencer(influencerUserId);
+    let socialNetworks =
+      await this.influencerService.getSocialNetworks(influencerUserId);
+    await this.influencerService.incrementProfileViews(influencerUserId);
     return InfluencerDto.fromEntity(influencer, socialNetworks);
   }
 
@@ -743,5 +760,42 @@ export class CompanyController {
     let f =
       await this.collaborationService.getInfluencerInvoice(collaborationId);
     return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-review-summaries')
+  async getReviewSummaries(
+    @IdFromJWT() userId: number,
+  ): Promise<ReviewSummaryDto[]> {
+    let r = await this.collaborationService.getCompanyReviewSummaries(userId);
+    return ReviewSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-review-summaries/:influencer_user_id')
+  async getInfluencerReviewSummaries(
+    @Param('influencer_user_id') userId: number,
+  ): Promise<ReviewSummaryDto[]> {
+    let r =
+      await this.collaborationService.getInfluencerReviewSummaries(userId);
+    return ReviewSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-influencer-collaborated-companies/:influencer_user_id')
+  async getInfluencerCollaboratedCompanies(
+    @Param('influencer_user_id') userId: number,
+  ): Promise<CollaboratedCompanyDto[]> {
+    let r = await this.collaborationService.getCollaboratedCompanies(userId);
+    return CollaboratedCompanyDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-collaborated-influencers')
+  async getCollaboratedInfluencers(
+    @IdFromJWT() userId: number,
+  ): Promise<InfluencerSummaryDto[]> {
+    let r = await this.collaborationService.getCollaboratedInfluencers(userId);
+    return InfluencerSummaryDto.fromEntities(r);
   }
 }

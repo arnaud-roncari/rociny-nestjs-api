@@ -4,7 +4,7 @@ import { MinioService } from '../minio/minio.service';
 import { UserRepository } from './repositories/user.repository';
 import { UserAuthService } from './services/user.auth.service';
 import { UserAuthController } from './controllers/user.auth.controller';
-import { InfluencerService } from './services/inlfuencer.service';
+import { InfluencerService } from './services/influencer.service';
 import { InfluencerController } from './controllers/influencer.controller';
 import { InfluencerRepository } from './repositories/influencer.repository';
 import { CompanyRepository } from './repositories/company.repository';

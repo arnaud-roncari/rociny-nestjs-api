@@ -7,18 +7,21 @@ import {
   CONVERSION_RATES,
   CPA_TARGETS,
   ENGAGEMENT_MULTIPLIERS,
+  RATING_MULTIPLIERS,
   SEASONAL_BOOSTS,
   THEME_BENCHMARKS,
   THEME_MULTIPLIERS,
 } from './constants';
-import { InfluencerService } from '../user/services/inlfuencer.service';
+import { InfluencerService } from '../user/services/influencer.service';
 import { Theme } from 'src/commons/enums/theme';
+import { CollaborationRepository } from '../user/repositories/collaboration.repository';
 
 @Injectable()
 export class PriceAlgorithmService {
   constructor(
     private readonly facebookService: FacebookService,
     private readonly influencerService: InfluencerService,
+    private readonly collaborationRepository: CollaborationRepository,
   ) {}
 
   async calculateProductPlacementPrice(
@@ -27,6 +30,8 @@ export class PriceAlgorithmService {
   ) {
     const stats = await this.facebookService.getInstagramAccount(userId);
     const influencer = await this.influencerService.getInfluencer(userId);
+    const rating =
+      await this.collaborationRepository.getInfluencerAverageStars(userId);
 
     // Step 1: Compute base CPM adjusted with multipliers
     const baseCPM = BASE_CPM[productPlacementType];
@@ -46,7 +51,7 @@ export class PriceAlgorithmService {
       .map((v) => this.computeWeight(new Date(v.date)))
       .reduce((sum, w) => sum + w, 0);
 
-    const weightedAverage = totalViews / weights;
+    const weightedAverage = weights > 0 ? totalViews / weights : 1;
 
     // Apply seasonality based on current month and influencer themes
     const seasonalBoost = this.computeSeasonalBoost(influencer.themes);
@@ -57,11 +62,19 @@ export class PriceAlgorithmService {
     const conversionRate = this.getConversionRate(influencer.themes);
     const CPAPrice = adjustedAverage * conversionRate * cpaTarget;
 
-    // Step 4: Compute final hybrid price (mix of CPM and CPA)
+    // Step 4: Compute hybrid price (mix of CPM and CPA)
     const CPMPrice = (CPM * adjustedAverage) / 1000;
     const HybridPrice = CPAPrice * 0.3 + CPMPrice * 0.7;
 
-    return Math.floor(HybridPrice);
+    // Step 5: Compute final price with rating
+    const ratingFactor = this.getRatingMultiplier(rating);
+    const finalPrice = HybridPrice * ratingFactor;
+    console.log(HybridPrice);
+    console.log(rating);
+    console.log(ratingFactor);
+    console.log(Math.floor(finalPrice));
+
+    return Math.floor(finalPrice);
   }
 
   /**
@@ -201,5 +214,33 @@ export class PriceAlgorithmService {
     }
 
     return Math.pow(0.9, exponent);
+  }
+
+  /**
+   * Returns an adjustment factor based on the influencer's average star rating.
+   *
+   * Logic:
+   * - The influencer's average rating (from 0 to 5) is mapped to a multiplier.
+   * - Example:
+   *    0.0 - 1.9 → 0.9 (penalized for poor reviews)
+   *    2.0 - 2.9 → 1.0 (neutral, no adjustment)
+   *    3.0 - 3.9 → 1.1 (slight boost for good reviews)
+   *    4.0 - 5.0 → 1.2 (strong boost for excellent reviews)
+   *
+   * This ensures that influencers with higher ratings receive proportionally
+   * higher pricing adjustments, while those with lower ratings are discounted.
+   *
+   * @param rating - Average rating of the influencer (0–5).
+   * @returns The corresponding multiplier (default is 1.0 if no range matches).
+   */
+  getRatingMultiplier(rating: number): number {
+    // If no rating at all (0), return neutral multiplier = 1.0
+    if (rating === 0) {
+      return 1.0;
+    }
+    const found = RATING_MULTIPLIERS.find(
+      (range) => rating >= range.min && rating < range.max,
+    );
+    return found ? found.multiplier : 1.0;
   }
 }

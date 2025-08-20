@@ -20,6 +20,12 @@ export class InfluencerSummaryDto {
   @ApiProperty({ example: 12000 })
   followers: number;
 
+  @ApiProperty({ example: 5 })
+  collaboration_amount: number;
+
+  @ApiProperty({ example: 4.2 })
+  average_stars: number;
+
   constructor(partial: Partial<InfluencerSummaryDto>) {
     Object.assign(this, partial);
   }
@@ -32,6 +38,14 @@ export class InfluencerSummaryDto {
       portfolio: entity.portfolio,
       name: entity.name,
       followers: entity.followers,
+      collaboration_amount: entity.collaborationAmount,
+      average_stars: entity.averageStars,
     });
+  }
+
+  static fromEntities(entities: InfluencerSummary[]): InfluencerSummaryDto[] {
+    return (entities || []).map((entity) =>
+      InfluencerSummaryDto.fromEntity(entity),
+    );
   }
 }

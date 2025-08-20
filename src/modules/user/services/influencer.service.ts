@@ -15,6 +15,7 @@ import { StripeService } from 'src/modules/stripe/stripe.service';
 import { InfluencerEntity } from '../entities/influencer.entity';
 import { InfluencerProfileCompletionStatusEntity } from '../entities/influencer_profile_completion_status.entity';
 import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
+import { InfluencerStatisticsEntity } from '../entities/influencer_statistics.entity';
 
 @Injectable()
 export class InfluencerService {
@@ -639,5 +640,14 @@ export class InfluencerService {
       profileCompletionStatus.hasStripeCompleted &&
       profileCompletionStatus.hasInstagramAccount
     );
+  }
+
+  async incrementProfileViews(userId: number): Promise<void> {
+    await this.influencerRepository.incrementProfileViews(userId);
+  }
+
+  async getStatistics(userId: number): Promise<InfluencerStatisticsEntity> {
+    let s = await this.influencerRepository.getStatistics(userId);
+    return s;
   }
 }

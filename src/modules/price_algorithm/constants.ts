@@ -141,3 +141,12 @@ export const SEASONAL_BOOSTS: Record<Theme, SeasonalPeriod[]> = {
     { months: [1, 2], boost: 1.2 },
   ],
 };
+
+type RatingRange = { min: number; max: number; multiplier: number };
+
+export const RATING_MULTIPLIERS: RatingRange[] = [
+  { min: 0, max: 2, multiplier: 0.9 },
+  { min: 2, max: 3, multiplier: 1.0 },
+  { min: 3, max: 4, multiplier: 1.1 },
+  { min: 4, max: 5.00001, multiplier: 1.2 },
+];
