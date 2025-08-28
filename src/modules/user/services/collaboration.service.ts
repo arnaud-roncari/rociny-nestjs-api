@@ -18,6 +18,7 @@ import internal from 'stream';
 import { ReviewSummaryEntity } from '../entities/review_summary.entity';
 import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
 import { InfluencerSummary } from '../entities/influencer_summary.entity';
+import { ConversationService } from 'src/modules/conversation/conversation.service';
 
 @Injectable()
 export class CollaborationService {
@@ -27,6 +28,7 @@ export class CollaborationService {
     private readonly stripeService: StripeService,
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
+    private readonly conversationService: ConversationService,
   ) {}
 
   /**
@@ -68,12 +70,12 @@ export class CollaborationService {
    */
   async createCollaboration(
     dto: CreateCollaborationDto,
-    companyId: number,
+    companyUserId: number,
   ): Promise<CollaborationEntity> {
     const status = 'sent_by_company';
     const id = await this.collaborationRepository.createCollaboration(
       dto,
-      companyId,
+      companyUserId,
       status,
     );
     const collab = await this.collaborationRepository.findById(id);
@@ -84,7 +86,31 @@ export class CollaborationService {
     // Generate draft quotes
     await this.generateAndStoreQuotes(collab);
 
-    const c = await this.collaborationRepository.findById(id);
+    const c = await this.collaborationRepository.findById(collab.id);
+
+    let company = await this.companyRepository.getCompanyById(companyUserId);
+    let influencer = await this.influencerRepository.getInfluencerById(
+      collab.influencerId,
+    );
+    let conversationExist = await this.conversationService.conversationExists(
+      influencer.id,
+      company.id,
+    );
+    if (conversationExist) {
+      await this.conversationService.addMessage(
+        conversationExist.id,
+        'company',
+        company.id,
+        null,
+        collab.id,
+      );
+    } else {
+      await this.conversationService.createConversation(
+        influencer.id,
+        company.id,
+        collab.id,
+      );
+    }
 
     return c;
   }
@@ -246,7 +272,32 @@ export class CollaborationService {
       collaborationId,
       'sent_by_company',
     );
-    /// Send notification ...
+
+    let collab = await this.collaborationRepository.findById(collaborationId);
+    let company = await this.companyRepository.getCompanyById(collab.companyId);
+    let influencer = await this.influencerRepository.getInfluencerById(
+      collab.influencerId,
+    );
+
+    let conversationExist = await this.conversationService.conversationExists(
+      influencer.id,
+      company.id,
+    );
+    if (conversationExist) {
+      await this.conversationService.addMessage(
+        conversationExist.id,
+        'company',
+        company.id,
+        null,
+        collab.id,
+      );
+    } else {
+      await this.conversationService.createConversation(
+        influencer.id,
+        company.id,
+        collab.id,
+      );
+    }
   }
 
   /**

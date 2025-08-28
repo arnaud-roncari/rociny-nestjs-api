@@ -17,6 +17,9 @@ import { FacebookService } from '../facebook/facebook.service';
 import { CollaborationRepository } from './repositories/collaboration.repository';
 import { CollaborationService } from './services/collaboration.service';
 import { PriceAlgorithmService } from '../price_algorithm/price_algorithm.service';
+import { ConversationRepository } from '../conversation/conversation.repository';
+import { ConversationService } from '../conversation/conversation.service';
+import { ConversationGateway } from '../conversation/conversation.gateway';
 
 @Module({
   providers: [
@@ -36,6 +39,9 @@ import { PriceAlgorithmService } from '../price_algorithm/price_algorithm.servic
     CollaborationRepository,
     CollaborationService,
     PriceAlgorithmService,
+    ConversationRepository,
+    ConversationService,
+    ConversationGateway,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

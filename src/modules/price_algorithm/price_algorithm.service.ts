@@ -69,10 +69,6 @@ export class PriceAlgorithmService {
     // Step 5: Compute final price with rating
     const ratingFactor = this.getRatingMultiplier(rating);
     const finalPrice = HybridPrice * ratingFactor;
-    console.log(HybridPrice);
-    console.log(rating);
-    console.log(ratingFactor);
-    console.log(Math.floor(finalPrice));
 
     return Math.floor(finalPrice);
   }

@@ -50,6 +50,10 @@ import { CollaboratedCompanyDto } from '../dtos/collaborated_company.dto';
 import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { InfluencerSummaryDto } from '../dtos/influencer-summary.dto';
 import { InfluencerStatisticsDto } from '../dtos/influencer_statistics.dto';
+import { ConversationSummaryDto } from 'src/modules/conversation/dtos/conversation.dto';
+import { ConversationService } from 'src/modules/conversation/conversation.service';
+import { MessageDto } from 'src/modules/conversation/dtos/message.dto';
+import { AddMessageDto } from 'src/modules/conversation/dtos/add-message.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -59,6 +63,7 @@ export class InfluencerController {
     private readonly minioService: MinioService,
     private readonly facebookService: FacebookService,
     private readonly collaborationService: CollaborationService,
+    private readonly conversationService: ConversationService,
   ) {}
 
   /**
@@ -772,5 +777,54 @@ export class InfluencerController {
         userId,
       );
     return CollaborationSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-all-conversations')
+  async getAllConversations(
+    @IdFromJWT() userId: number,
+  ): Promise<ConversationSummaryDto[]> {
+    let influencer = await this.influencerService.getInfluencer(userId);
+    let r = await this.conversationService.getConversations(influencer.id);
+    return ConversationSummaryDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('get-messages-by-conversation/:conversation_id')
+  async getMessagesByConversationId(
+    @Param('conversation_id') conversationId: number,
+  ): Promise<MessageDto[]> {
+    let r =
+      await this.conversationService.getMessagesByConversationId(
+        conversationId,
+      );
+    return MessageDto.fromEntities(r);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('mark-messages-as-read/:conversation_id')
+  async markConversationMessagesAsRead(
+    @Param('conversation_id') conversationId: number,
+  ): Promise<void> {
+    let r = await this.conversationService.markConversationMessagesAsRead(
+      conversationId,
+      'influencer',
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('add-message')
+  async addMessage(
+    @IdFromJWT() userId: number,
+    @Body() dto: AddMessageDto,
+  ): Promise<void> {
+    const influencer = await this.influencerService.getInfluencer(userId);
+
+    const message = await this.conversationService.addMessage(
+      dto.conversation_id,
+      'influencer',
+      influencer.id,
+      dto.content,
+    );
   }
 }
