@@ -20,6 +20,8 @@ import { PriceAlgorithmService } from '../price_algorithm/price_algorithm.servic
 import { ConversationRepository } from '../conversation/conversation.repository';
 import { ConversationService } from '../conversation/conversation.service';
 import { ConversationGateway } from '../conversation/conversation.gateway';
+import { NotificationRepository } from '../notification/notification.repository';
+import { NotificationService } from '../notification/notification.service';
 
 @Module({
   providers: [
@@ -42,6 +44,8 @@ import { ConversationGateway } from '../conversation/conversation.gateway';
     ConversationRepository,
     ConversationService,
     ConversationGateway,
+    NotificationRepository,
+    NotificationService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

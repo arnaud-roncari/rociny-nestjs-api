@@ -19,6 +19,8 @@ import { ReviewSummaryEntity } from '../entities/review_summary.entity';
 import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
 import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { ConversationService } from 'src/modules/conversation/conversation.service';
+import { NotificationType } from 'src/modules/notification/constant';
+import { NotificationService } from 'src/modules/notification/notification.service';
 
 @Injectable()
 export class CollaborationService {
@@ -29,6 +31,7 @@ export class CollaborationService {
     private readonly influencerRepository: InfluencerRepository,
     private readonly companyRepository: CompanyRepository,
     private readonly conversationService: ConversationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -111,6 +114,11 @@ export class CollaborationService {
         collab.id,
       );
     }
+
+    await this.notificationService.send(
+      influencer.userId,
+      NotificationType.collaboration_sent_by_company,
+    );
 
     return c;
   }
@@ -265,6 +273,16 @@ export class CollaborationService {
       collaborationId,
       'canceled_by_company',
     );
+
+    let c = await this.collaborationRepository.findById(collaborationId);
+    let influencer = await this.influencerRepository.getInfluencerById(
+      c.influencerId,
+    );
+
+    await this.notificationService.send(
+      influencer.userId,
+      NotificationType.collaboration_canceled_by_company,
+    );
   }
 
   async sendDraftCollaboration(collaborationId: number): Promise<void> {
@@ -298,6 +316,11 @@ export class CollaborationService {
         collab.id,
       );
     }
+
+    await this.notificationService.send(
+      influencer.userId,
+      NotificationType.collaboration_sent_by_company,
+    );
   }
 
   /**
@@ -363,6 +386,22 @@ export class CollaborationService {
     await this.collaborationRepository.updateCollaborationStatus(
       collaborationId,
       'in_progress',
+    );
+
+    let c = await this.collaborationRepository.findById(collaborationId);
+    let company = await this.companyRepository.getCompanyById(c.companyId);
+    let influencer = await this.influencerRepository.getInfluencerById(
+      c.influencerId,
+    );
+
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.collaboration_in_progress,
+    );
+
+    await this.notificationService.send(
+      influencer.userId,
+      NotificationType.collaboration_in_progress,
     );
   }
 
@@ -454,6 +493,16 @@ export class CollaborationService {
       PIName,
       IIName,
     );
+
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.collaboration_done,
+    );
+
+    await this.notificationService.send(
+      influencerData.userId,
+      NotificationType.collaboration_done,
+    );
   }
 
   async createReview(
@@ -469,6 +518,12 @@ export class CollaborationService {
       reviewedId,
       stars,
       description,
+    );
+
+    /// Push notification
+    await this.notificationService.send(
+      reviewedId,
+      NotificationType.new_review,
     );
   }
 
@@ -542,6 +597,14 @@ export class CollaborationService {
       collaborationId,
       'waiting_for_company_payment',
     );
+
+    let c = await this.collaborationRepository.findById(collaborationId);
+    let company = await this.companyRepository.getCompanyById(c.companyId);
+
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.collaboration_waiting_for_company_payment,
+    );
   }
 
   async refuseCollaboration(collaborationId: number): Promise<void> {
@@ -549,12 +612,28 @@ export class CollaborationService {
       collaborationId,
       'refused_by_influencer',
     );
+
+    let c = await this.collaborationRepository.findById(collaborationId);
+    let company = await this.companyRepository.getCompanyById(c.companyId);
+
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.collaboration_refused_by_influencer,
+    );
   }
 
   async endCollaboration(collaborationId: number): Promise<void> {
     await this.collaborationRepository.updateCollaborationStatus(
       collaborationId,
       'pending_company_validation',
+    );
+
+    let c = await this.collaborationRepository.findById(collaborationId);
+    let company = await this.companyRepository.getCompanyById(c.companyId);
+
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.collaboration_pending_company_validation,
     );
   }
 

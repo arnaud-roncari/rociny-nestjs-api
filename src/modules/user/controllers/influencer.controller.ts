@@ -54,6 +54,12 @@ import { ConversationSummaryDto } from 'src/modules/conversation/dtos/conversati
 import { ConversationService } from 'src/modules/conversation/conversation.service';
 import { MessageDto } from 'src/modules/conversation/dtos/message.dto';
 import { AddMessageDto } from 'src/modules/conversation/dtos/add-message.dto';
+import { RegisterDeviceDto } from '../dtos/register_device.dto';
+import { UserDeviceEntity } from 'src/modules/notification/entities/user_device.entity';
+import { DeleteDeviceDto } from '../dtos/delete_device_dto';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user_notification_preference.dto';
+import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -64,6 +70,7 @@ export class InfluencerController {
     private readonly facebookService: FacebookService,
     private readonly collaborationService: CollaborationService,
     private readonly conversationService: ConversationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -825,6 +832,34 @@ export class InfluencerController {
       'influencer',
       influencer.id,
       dto.content,
+    );
+  }
+
+  // @Post('testing')
+  // async testing(): Promise<void> {
+  //   await this.conversationService.addMessage(11, 'influencer', 41, 'Testing');
+  // }
+
+  @UseGuards(AuthGuard)
+  @Get('preferences')
+  async getPreferences(
+    @IdFromJWT() userId: number,
+  ): Promise<UserNotificationPreferenceDto[]> {
+    const entities =
+      await this.notificationService.getPreferencesByUserId(userId);
+    return UserNotificationPreferenceDto.fromEntities(entities);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('preference')
+  async updatePreference(
+    @IdFromJWT() userId: number,
+    @Body() dto: UpdateUserNotificationPreferenceDto,
+  ): Promise<void> {
+    await this.notificationService.updateUserPreference(
+      userId,
+      dto.type,
+      dto.enabled,
     );
   }
 }

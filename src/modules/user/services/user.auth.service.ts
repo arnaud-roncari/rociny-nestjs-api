@@ -27,6 +27,7 @@ import { UserUpdatingEmailEntity } from '../entities/user_updating_email.entity'
 import { UserAlreadyUpdatingEmail } from 'src/commons/errors/user-already-updating-email';
 import { EmailAlreadyUsed } from 'src/commons/errors/email-already-used';
 import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
+import { NotificationRepository } from 'src/modules/notification/notification.repository';
 
 @Injectable()
 export class UserAuthService {
@@ -75,6 +76,7 @@ export class UserAuthService {
     private readonly companyRepository: CompanyRepository,
     private readonly stripeService: StripeService,
     private readonly facebookRepository: FacebookRepository,
+    private readonly notificationRepository: NotificationRepository,
   ) {}
 
   async onModuleInit() {
@@ -211,6 +213,8 @@ export class UserAuthService {
       user.passwordHash,
       user.accountType,
     );
+
+    await this.notificationRepository.initializePreferences(createdUser.id);
 
     // Create related table
     this.createRelatedTablesForUser(
@@ -459,6 +463,8 @@ export class UserAuthService {
       // Create user if not found
       if (isNew) {
         user = await this.userRepository.createUser(email, null, null);
+
+        await this.notificationRepository.initializePreferences(user.id);
       }
       // Link OAuth account
       await this.userRepository.createOAuthUser(
@@ -537,6 +543,8 @@ export class UserAuthService {
 
       if (isNew) {
         user = await this.userRepository.createUser(email ?? null, null, null);
+
+        await this.notificationRepository.initializePreferences(user.id);
       }
 
       await this.userRepository.createOAuthUser(

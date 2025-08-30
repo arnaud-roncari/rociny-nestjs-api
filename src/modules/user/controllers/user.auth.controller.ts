@@ -31,6 +31,9 @@ import { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { FacebookService } from 'src/modules/facebook/facebook.service';
 import { FetchedInstagramAccountDto } from 'src/modules/facebook/dtos/fetched_instagram_account.dto';
+import { DeleteDeviceDto } from '../dtos/delete_device_dto';
+import { RegisterDeviceDto } from '../dtos/register_device.dto';
+import { NotificationService } from 'src/modules/notification/notification.service';
 
 @Controller('user/auth')
 export class UserAuthController {
@@ -38,6 +41,7 @@ export class UserAuthController {
     private readonly authService: UserAuthService,
     private readonly jwtService: JwtService,
     private readonly facebookService: FacebookService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -260,5 +264,22 @@ export class UserAuthController {
   async logoutFacebook(@IdFromJWT() userId: number): Promise<void> {
     await this.authService.deleteOauth(userId, 'facebook');
     await this.facebookService.deleteInstagramAccount(userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Register a device for push notifications' })
+  @Post('register-device')
+  async registerDevice(
+    @IdFromJWT() userId: number,
+    @Body() dto: RegisterDeviceDto,
+  ): Promise<void> {
+    await this.notificationService.registerDevice(userId, dto.onesignal_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Delete a device by its OneSignal ID' })
+  @Delete('delete-device')
+  async deleteDevice(@Body() dto: DeleteDeviceDto): Promise<void> {
+    await this.notificationService.deleteDevice(dto.onesignal_id);
   }
 }

@@ -61,6 +61,12 @@ import { ConversationSummaryDto } from 'src/modules/conversation/dtos/conversati
 import { ConversationService } from 'src/modules/conversation/conversation.service';
 import { MessageDto } from 'src/modules/conversation/dtos/message.dto';
 import { AddMessageDto } from 'src/modules/conversation/dtos/add-message.dto';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { RegisterDeviceDto } from '../dtos/register_device.dto';
+import { UserDeviceEntity } from 'src/modules/notification/entities/user_device.entity';
+import { DeleteDeviceDto } from '../dtos/delete_device_dto';
+import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user_notification_preference.dto';
+import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -72,6 +78,7 @@ export class CompanyController {
     private readonly minioService: MinioService,
     private readonly priceAlgorithmService: PriceAlgorithmService,
     private readonly conversationService: ConversationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -850,6 +857,29 @@ export class CompanyController {
       'company',
       company.id,
       dto.content,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('preferences')
+  async getPreferences(
+    @IdFromJWT() userId: number,
+  ): Promise<UserNotificationPreferenceDto[]> {
+    const entities =
+      await this.notificationService.getPreferencesByUserId(userId);
+    return UserNotificationPreferenceDto.fromEntities(entities);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('preference')
+  async updatePreference(
+    @IdFromJWT() userId: number,
+    @Body() dto: UpdateUserNotificationPreferenceDto,
+  ): Promise<void> {
+    await this.notificationService.updateUserPreference(
+      userId,
+      dto.type,
+      dto.enabled,
     );
   }
 }

@@ -5,6 +5,8 @@ import { MessageEntity } from './entities/message.entity';
 import { ConversationGateway } from './conversation.gateway';
 import { CompanyRepository } from '../user/repositories/company.repository';
 import { InfluencerRepository } from '../user/repositories/influencer.repository';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/constant';
 
 @Injectable()
 export class ConversationService {
@@ -13,6 +15,7 @@ export class ConversationService {
     private readonly conversationGateway: ConversationGateway,
     private readonly companyRepository: CompanyRepository,
     private readonly influencerRepository: InfluencerRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createConversation(
@@ -141,6 +144,16 @@ export class ConversationService {
       conversation,
     );
     this.conversationGateway.refreshConversation(company.userId, conversation);
+
+    // Push notification
+    await this.notificationService.send(
+      influencer.userId,
+      NotificationType.new_message,
+    );
+    await this.notificationService.send(
+      company.userId,
+      NotificationType.new_message,
+    );
 
     return message;
   }
