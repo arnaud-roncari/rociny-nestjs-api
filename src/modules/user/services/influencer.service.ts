@@ -27,11 +27,14 @@ export class InfluencerService {
   ) {}
 
   /**
-   * Sets the profile picture for a user.
+   * Uploads and sets a new profile picture for an influencer.
+   * - Deletes the previous one if it exists.
    *
-   * @param userId - The ID of the user whose profile picture is being set.
-   * @param file - The uploaded file containing the profile picture.
-   * @throws Error if the file is not provided or the user is not found.
+   * @param userId - Influencer user ID.
+   * @param file - Uploaded file.
+   * @returns The new profile picture filename.
+   * @throws FileRequiredException if no file provided.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateProfilePicture(
     userId: number,
@@ -46,22 +49,18 @@ export class InfluencerService {
       throw new UserNotFoundException();
     }
 
-    // Keep reference to previous profile pictore, to be deleted later
     const oldProfilePicture = user.profilePicture;
 
-    // Upload new profile picture
     const newProfilePicture = await this.minioService.uploadFile(
       file,
       BucketType.influencer_pictures,
     );
 
-    // Update user
     await this.influencerRepository.updateProfilePicture(
       userId,
       newProfilePicture,
     );
 
-    /// Delete previous profile picture
     if (oldProfilePicture) {
       await this.minioService.removeFile(
         BucketType.influencer_pictures,
@@ -73,34 +72,14 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves the profile picture URL for a user.
+   * Replaces the entire portfolio of an influencer.
+   * - Deletes old portfolio files.
    *
-   * @param userId - The ID of the user whose profile picture is being retrieved.
-   * @returns The URL of the profile picture.
-   * @throws Error if the user is not found or the profile picture does not exist.
-   */
-  async getProfilePicture(userId: number): Promise<internal.Readable> {
-    console.log(userId);
-
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    const file = await this.minioService.getFile(
-      BucketType.influencer_pictures,
-      user.profilePicture,
-    );
-
-    return file;
-  }
-
-  /**
-   * Updates the portfolio for a user.
-   *
-   * @param userId - The ID of the user whose portfolio is being updated.
-   * @param files - The uploaded files for the portfolio.
-   * @throws Error if no files are provided or the user is not found.
+   * @param userId - Influencer user ID.
+   * @param files - Uploaded portfolio files.
+   * @returns Array of new portfolio file names.
+   * @throws FileRequiredException if no files provided.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateAllPortfolio(
     userId: number,
@@ -115,20 +94,16 @@ export class InfluencerService {
       throw new UserNotFoundException();
     }
 
-    // Keep references to previous portfolio files, to be deleted later
     const oldPortfolio = user.portfolio || [];
 
-    // Upload new portfolio files
     const newPortfolio = await Promise.all(
       files.map((file) =>
         this.minioService.uploadFile(file, BucketType.portfolios),
       ),
     );
 
-    // Update user
     await this.influencerRepository.updatePortfolio(userId, newPortfolio);
 
-    // Delete previous portfolio files
     await Promise.all(
       oldPortfolio.map((file) =>
         this.minioService.removeFile(BucketType.portfolios, file),
@@ -138,6 +113,14 @@ export class InfluencerService {
     return newPortfolio;
   }
 
+  /**
+   * Adds pictures to an influencer's existing portfolio.
+   *
+   * @param userId - Influencer user ID.
+   * @param files - New files to add.
+   * @throws FileRequiredException if no files provided.
+   * @throws UserNotFoundException if user does not exist.
+   */
   async addPicturesToPortfolio(
     userId: number,
     files: Express.Multer.File[],
@@ -160,6 +143,13 @@ export class InfluencerService {
     await this.influencerRepository.addPicturesToPortfolio(userId, newPictures);
   }
 
+  /**
+   * Removes a specific picture from an influencer's portfolio.
+   *
+   * @param userId - Influencer user ID.
+   * @param pictureUrl - Picture filename.
+   * @throws UserNotFoundException if user does not exist.
+   */
   async removePictureFromPortfolio(
     userId: number,
     pictureUrl: string,
@@ -178,25 +168,31 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves a specific portfolio file for a user by its name.
+   * Retrieves an influencer's profile picture by filename.
    *
-   * @param userId - The ID of the user whose portfolio file is being retrieved.
-   * @param fileName - The name of the portfolio file to retrieve.
-   * @returns The file as a readable stream.
-   * @throws Error if the user is not found or the file does not exist.
+   * @param filename - Picture filename.
+   * @returns Readable file stream.
    */
-  async getPortfolio(
-    userId: number,
-    fileName: string,
+  async getProfilePictureByFilename(
+    filename: string,
   ): Promise<internal.Readable> {
-    const user = await this.influencerRepository.getInfluencer(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-    if (!user.portfolio || !user.portfolio.includes(fileName)) {
-      throw new FileNotFoundException();
-    }
+    const file = await this.minioService.getFile(
+      BucketType.influencer_pictures,
+      filename,
+    );
 
+    return file;
+  }
+
+  /**
+   * Retrieves a portfolio file by name.
+   *
+   * @param userId - Influencer user ID.
+   * @param fileName - Portfolio file name.
+   * @returns Readable file stream.
+   * @throws FileNotFoundException if file not found in portfolio.
+   */
+  async getPortfolio(fileName: string): Promise<internal.Readable> {
     const file = await this.minioService.getFile(
       BucketType.portfolios,
       fileName,
@@ -206,11 +202,11 @@ export class InfluencerService {
   }
 
   /**
-   * Updates the name of the user.
+   * Updates influencer name.
    *
-   * @param userId - The ID of the user whose name is being updated.
-   * @param name - The new name for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param name - New name.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateName(userId: number, name: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -221,22 +217,30 @@ export class InfluencerService {
     await this.influencerRepository.updateName(userId, name);
   }
 
+  /**
+   * Updates VAT number and syncs with Stripe.
+   *
+   * @param userId - Influencer user ID.
+   * @param vatNumber - VAT number.
+   * @throws UserNotFoundException if user does not exist.
+   */
   async updateVATNumber(userId: number, vatNumber: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
+    console.log(vatNumber);
     await this.stripeService.setConnectedVat(user.stripeAccountId, vatNumber);
     await this.influencerRepository.updateVATNumber(userId, vatNumber);
   }
 
   /**
-   * Updates the description of the user.
+   * Updates influencer description.
    *
-   * @param userId - The ID of the user whose description is being updated.
-   * @param description - The new description for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param description - New description.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateDescription(userId: number, description: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -248,11 +252,11 @@ export class InfluencerService {
   }
 
   /**
-   * Updates the department of the user.
+   * Updates influencer department.
    *
-   * @param userId - The ID of the user whose department is being updated.
-   * @param department - The new department for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param department - New department.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateDepartment(userId: number, department: string): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -264,11 +268,11 @@ export class InfluencerService {
   }
 
   /**
-   * Updates the themes of the user.
+   * Updates influencer themes.
    *
-   * @param userId - The ID of the user whose themes are being updated.
-   * @param themes - The new themes for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param themes - New themes.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateThemes(userId: number, themes: string[]): Promise<void> {
     const user = await this.influencerRepository.getInfluencer(userId);
@@ -280,11 +284,11 @@ export class InfluencerService {
   }
 
   /**
-   * Updates the target audience of the user.
+   * Updates influencer target audience.
    *
-   * @param userId - The ID of the user whose target audience is being updated.
-   * @param targetAudience - The new target audience for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param targetAudience - Target audience array.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateTargetAudience(
     userId: number,
@@ -302,12 +306,12 @@ export class InfluencerService {
   }
 
   /**
-   * Adds a social network to the user's profile.
+   * Adds a new social network to influencer profile.
    *
-   * @param userId - The ID of the user whose social network is being added.
-   * @param platform - The platform type of the social network (e.g., Instagram, Twitter).
-   * @param url - The URL of the social network profile.
-   * @throws UserNotFoundException if the user is not found.
+   * @param userId - Influencer user ID.
+   * @param platform - Platform type.
+   * @param url - Social network URL.
+   * @throws SocialNetworkExists if platform already added.
    */
   async createSocialNetwork(
     userId: number,
@@ -337,11 +341,10 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves the social networks of the user.
+   * Retrieves all influencer social networks.
    *
-   * @param userId - The ID of the user.
-   * @returns The list of social networks.
-   * @throws Error if the user is not found.
+   * @param userId - Influencer user ID.
+   * @returns List of social networks.
    */
   async getSocialNetworks(userId: number): Promise<SocialNetworkEntity[]> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -354,11 +357,10 @@ export class InfluencerService {
   }
 
   /**
-   * Deletes a social network from the user's profile.
+   * Deletes an influencer's social network by ID.
    *
-   * @param userId - The ID of the user.
-   * @param socialNetworkId - The social network id to delete.
-   * @throws Error if the user is not found or the social network does not exist.
+   * @param userId - Influencer user ID.
+   * @param socialNetworkId - Social network ID.
    */
   async deleteSocialNetwork(
     userId: number,
@@ -373,12 +375,11 @@ export class InfluencerService {
   }
 
   /**
-   * Updates a social network in the user's profile.
+   * Updates influencer social network URL.
    *
-   * @param userId - The ID of the user.
-   * @param socialNetworkId
-   * @param url
-   * @throws Error if the user is not found or the social network does not exist.
+   * @param userId - Influencer user ID.
+   * @param socialNetworkId - Social network ID.
+   * @param url - New URL.
    */
   async updateSocialNetwork(
     userId: number,
@@ -389,11 +390,18 @@ export class InfluencerService {
     if (!influencer) {
       throw new UserNotFoundException();
     }
-    /// NOTE : Should check if user own this social network
 
     await this.influencerRepository.updateSocialNetwork(socialNetworkId, url);
   }
 
+  /**
+   * Uploads and adds a new legal document.
+   * - If a document of same type exists, deletes it first.
+   *
+   * @param userId - Influencer user ID.
+   * @param type - Document type.
+   * @param file - File to upload.
+   */
   async addLegalDocument(
     userId: number,
     type: LegalDocumentType,
@@ -423,15 +431,11 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves the status of a legal document for a specific influencer based on the document type.
+   * Retrieves legal document status by type.
    *
-   * @param userId - The ID of the influencer whose legal document status is being retrieved.
-   * @param type - The type of the legal document whose status is being checked (e.g., contract, agreement, etc.).
-   *
-   * @returns The status of the legal document. If no document exists for the given type,
-   *          the status will be `LegalDocumentStatus.missing`.
-   *
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   * @param userId - Influencer user ID.
+   * @param type - Document type.
+   * @returns LegalDocumentStatus.
    */
   async getLegalDocumentStatus(
     userId: number,
@@ -455,14 +459,10 @@ export class InfluencerService {
   }
 
   /**
-   * Deletes a legal document of a specific influencer based on the document ID and type.
+   * Deletes a legal document by type.
    *
-   * @param userId - The ID of the user (influencer) whose legal document is to be deleted.
-   * @param type - The type of the legal document to be deleted (e.g., contract, agreement, etc.).
-   *
-   * @returns A promise that resolves when the document is deleted.
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
-   * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the influencer.
+   * @param userId - Influencer user ID.
+   * @param type - Document type.
    */
   async deleteLegalDocument(
     userId: number,
@@ -479,7 +479,6 @@ export class InfluencerService {
     );
 
     if (!document) {
-      // Exception missing.
       return;
     }
     await this.minioService.removeFile(BucketType.legal, document.document);
@@ -487,12 +486,10 @@ export class InfluencerService {
   }
 
   /**
-   * Retrieves the account link for a specific influencer to complete their Stripe onboarding.
+   * Creates a Stripe onboarding account link for influencer.
    *
-   * @param userId - The ID of the user (influencer) whose Stripe account link is to be retrieved.
-   *
-   * @returns A promise that resolves with the URL of the Stripe account link.
-   * @throws {UserNotFoundException} If the influencer with the given `userId` is not found.
+   * @param userId - Influencer user ID.
+   * @returns Stripe account link URL.
    */
   async getStripeAccountLink(userId: number): Promise<string> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -506,14 +503,12 @@ export class InfluencerService {
 
     return url;
   }
+
   /**
-   * Generates a secure login link to the influencer's Stripe Express dashboard.
-   * This link allows the user to update their payout details, personal information,
-   * and view payment activity.
+   * Generates a login link to Stripe Express dashboard.
    *
-   * @param userId - The ID of the user requesting the login link.
-   * @returns A URL to the Stripe Express dashboard.
-   * @throws UserNotFoundException - If the influencer does not exist in the database.
+   * @param userId - Influencer user ID.
+   * @returns Stripe login link URL.
    */
   async createLoginLink(userId: number): Promise<string> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -529,11 +524,10 @@ export class InfluencerService {
   }
 
   /**
-   * Checks whether the influencer has completed all required legal documents.
+   * Checks if influencer completed all legal documents.
    *
-   * @param userId - The ID of the user (influencer) to check.
-   * @returns `true` if all required documents have been submitted and validated, otherwise `false`.
-   * @throws `UserNotFoundException` if the influencer does not exist.
+   * @param userId - Influencer user ID.
+   * @returns true if completed.
    */
   async hasCompletedDocuments(userId: number): Promise<boolean> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -550,11 +544,10 @@ export class InfluencerService {
   }
 
   /**
-   * Checks whether the influencer has completed their Stripe onboarding process.
+   * Checks if influencer completed Stripe onboarding.
    *
-   * @param userId - The ID of the user (influencer) to check.
-   * @returns `true` if the associated Stripe account is fully set up, otherwise `false`.
-   * @throws `UserNotFoundException` if the influencer does not exist.
+   * @param userId - Influencer user ID.
+   * @returns true if completed.
    */
   async hasCompletedStripe(userId: number): Promise<boolean> {
     const influencer = await this.influencerRepository.getInfluencer(userId);
@@ -568,6 +561,12 @@ export class InfluencerService {
     return completed;
   }
 
+  /**
+   * Retrieves influencer entity by ID.
+   *
+   * @param userId - Influencer user ID.
+   * @returns InfluencerEntity.
+   */
   async getInfluencer(userId: number): Promise<InfluencerEntity> {
     const user = await this.influencerRepository.getInfluencer(userId);
     if (!user) {
@@ -577,13 +576,19 @@ export class InfluencerService {
     return user;
   }
 
+  /**
+   * Checks if influencer has a linked Instagram account.
+   *
+   * @param userId - Influencer user ID.
+   * @returns true if exists, false otherwise.
+   */
   async hasCompletedInstagram(userId: number): Promise<any> {
     const company = await this.influencerRepository.getInfluencer(userId);
     if (!company) {
       throw new UserNotFoundException();
     }
 
-    let oauth = await this.facebookRepository.getInstagramAccount(userId);
+    const oauth = await this.facebookRepository.getInstagramAccount(userId);
 
     if (!oauth) {
       return false;
@@ -591,6 +596,12 @@ export class InfluencerService {
     return true;
   }
 
+  /**
+   * Computes influencer profile completion status.
+   *
+   * @param userId - Influencer user ID.
+   * @returns InfluencerProfileCompletionStatusEntity.
+   */
   async getProfileCompletionStatus(
     userId: number,
   ): Promise<InfluencerProfileCompletionStatusEntity> {
@@ -624,6 +635,12 @@ export class InfluencerService {
     return profileCompletionStatus;
   }
 
+  /**
+   * Checks if influencer profile is fully completed.
+   *
+   * @param userId - Influencer user ID.
+   * @returns true if all required fields and validations are satisfied.
+   */
   async hasCompletedProfile(userId: number): Promise<boolean> {
     const profileCompletionStatus =
       await this.getProfileCompletionStatus(userId);
@@ -642,12 +659,23 @@ export class InfluencerService {
     );
   }
 
+  /**
+   * Increments the influencer's profile view counter.
+   *
+   * @param userId - Influencer user ID.
+   */
   async incrementProfileViews(userId: number): Promise<void> {
     await this.influencerRepository.incrementProfileViews(userId);
   }
 
+  /**
+   * Retrieves influencer statistics for dashboard.
+   *
+   * @param userId - Influencer user ID.
+   * @returns InfluencerStatisticsEntity.
+   */
   async getStatistics(userId: number): Promise<InfluencerStatisticsEntity> {
-    let s = await this.influencerRepository.getStatistics(userId);
+    const s = await this.influencerRepository.getStatistics(userId);
     return s;
   }
 }

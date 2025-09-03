@@ -10,7 +10,6 @@ import { AgeInsightEntity } from './entities/age_insight.entity';
 import { MediaInsightEntity } from './entities/media_insight.entity';
 import { InstagramProfileEntity } from './entities/instagram_profile.entity';
 import { ViewsHistoryEntity } from './entities/views_history.entity';
-import { exit } from 'process';
 
 @Injectable()
 export class FacebookRepository {
@@ -300,7 +299,7 @@ export class FacebookRepository {
         access_token: token,
       },
     });
-    let entity = GenderInsightEntity.fromBreakdowns(
+    const entity = GenderInsightEntity.fromBreakdowns(
       response.data.data[0].total_value.breakdowns[0].results,
     );
     return entity;
@@ -322,7 +321,7 @@ export class FacebookRepository {
       },
     });
 
-    let entity = CityInsightEntity.fromBreakdowns(
+    const entity = CityInsightEntity.fromBreakdowns(
       response.data.data[0].total_value.breakdowns[0].results,
     );
     return entity;
@@ -344,7 +343,7 @@ export class FacebookRepository {
       },
     });
 
-    let entity = AgeInsightEntity.fromBreakdowns(
+    const entity = AgeInsightEntity.fromBreakdowns(
       response.data.data[0].total_value.breakdowns[0].results,
     );
     return entity;

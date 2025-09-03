@@ -316,6 +316,7 @@ export class StripeService implements OnModuleInit {
    * Retrieves platform Stripe balance.
    */
   async getBalance(currency: string = 'eur'): Promise<any> {
+    void currency;
     return await StripeService.stripe.balance.retrieve();
   }
 

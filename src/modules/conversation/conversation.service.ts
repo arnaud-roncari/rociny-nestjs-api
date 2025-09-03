@@ -23,10 +23,11 @@ export class ConversationService {
     companyId: number,
     collaborationId: number,
   ): Promise<void> {
-    let newConversation = await this.conversationRepository.createConversation(
-      influencerId,
-      companyId,
-    );
+    const newConversation =
+      await this.conversationRepository.createConversation(
+        influencerId,
+        companyId,
+      );
     await this.conversationRepository.addMessage(
       newConversation.id,
       'company',
@@ -35,7 +36,7 @@ export class ConversationService {
       collaborationId,
     );
 
-    let conversation = await this.conversationRepository.getConversationById(
+    const conversation = await this.conversationRepository.getConversationById(
       newConversation.id,
     );
 
@@ -56,7 +57,7 @@ export class ConversationService {
     influencerId: number,
     companyId: number,
   ): Promise<ConversationSummaryEntity | null> {
-    let r = await this.conversationRepository.conversationExists(
+    const r = await this.conversationRepository.conversationExists(
       influencerId,
       companyId,
     );
@@ -64,7 +65,7 @@ export class ConversationService {
   }
 
   async getConversations(id: number): Promise<ConversationSummaryEntity[]> {
-    let r =
+    const r =
       await this.conversationRepository.getConversationsByParticipantId(id);
     return r;
   }
@@ -72,7 +73,7 @@ export class ConversationService {
   async getMessagesByConversationId(
     conversationId: number,
   ): Promise<MessageEntity[]> {
-    let r =
+    const r =
       await this.conversationRepository.getMessagesByConversationId(
         conversationId,
       );
@@ -82,7 +83,7 @@ export class ConversationService {
   async getConversationById(
     conversationId: number,
   ): Promise<ConversationSummaryEntity> {
-    let r =
+    const r =
       await this.conversationRepository.getConversationById(conversationId);
     return r;
   }
@@ -91,7 +92,7 @@ export class ConversationService {
     conversationId: number,
     currentSenderType: 'influencer' | 'company',
   ): Promise<void> {
-    let conversation =
+    const conversation =
       await this.conversationRepository.markConversationMessagesAsRead(
         conversationId,
         currentSenderType,
@@ -117,7 +118,7 @@ export class ConversationService {
     content: string | null,
     collaborationId?: number,
   ): Promise<MessageEntity> {
-    let message = await this.conversationRepository.addMessage(
+    const message = await this.conversationRepository.addMessage(
       conversationId,
       senderType,
       senderId,
@@ -135,9 +136,8 @@ export class ConversationService {
       conversation.companyId,
     );
 
-    //  Notify both (message + refresh conversation)
-    this.conversationGateway.addMessage(influencer.userId, message);
     this.conversationGateway.addMessage(company.userId, message);
+    this.conversationGateway.addMessage(influencer.userId, message);
 
     this.conversationGateway.refreshConversation(
       influencer.userId,
@@ -146,14 +146,17 @@ export class ConversationService {
     this.conversationGateway.refreshConversation(company.userId, conversation);
 
     // Push notification
-    await this.notificationService.send(
-      influencer.userId,
-      NotificationType.new_message,
-    );
-    await this.notificationService.send(
-      company.userId,
-      NotificationType.new_message,
-    );
+    if (senderType === 'influencer') {
+      await this.notificationService.send(
+        company.userId,
+        NotificationType.new_message,
+      );
+    } else {
+      await this.notificationService.send(
+        influencer.userId,
+        NotificationType.new_message,
+      );
+    }
 
     return message;
   }

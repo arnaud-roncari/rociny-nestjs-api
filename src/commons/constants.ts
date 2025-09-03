@@ -1,1 +1,1 @@
-export let kCommission: number = 0.1;
+export const kCommission: number = 0.1;

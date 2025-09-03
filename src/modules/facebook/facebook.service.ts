@@ -6,7 +6,6 @@ import { FetchedInstagramAccountEntity } from './entities/fetched_instagram_acco
 import { InstagramAccountEntity } from './entities/instagram_account.entity';
 import { InstagramNotFoundException } from 'src/commons/errors/instagram-not-found';
 import { InstagramAlreadyExists } from 'src/commons/errors/instagram-already-exist';
-import { ViewsHistoryEntity } from './entities/views_history.entity';
 
 @Injectable()
 export class FacebookService {

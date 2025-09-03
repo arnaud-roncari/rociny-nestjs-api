@@ -5,7 +5,6 @@ import { CollaborationEntity } from '../entities/collaboration.entity';
 import { ProductPlacementEntity } from '../entities/product_placement.entity';
 import { CollaborationSummaryEntity } from '../entities/collaboration_summary.entity';
 import { ReviewEntity } from '../entities/review.entity';
-import { CreateReviewDto } from '../dtos/create-review.dto';
 import { ReviewSummaryEntity } from '../entities/review_summary.entity';
 import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
 import { InfluencerSummary } from '../entities/influencer_summary.entity';

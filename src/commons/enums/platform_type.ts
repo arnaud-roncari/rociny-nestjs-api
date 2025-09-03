@@ -4,4 +4,5 @@ export enum PlatformType {
   x = 'x',
   linkedin = 'linkedin',
   tiktok = 'tiktok',
+  instagram = 'instagram',
 }

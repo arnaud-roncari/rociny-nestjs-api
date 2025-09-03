@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CollaborationRepository } from '../repositories/collaboration.repository';
 import { CreateCollaborationDto } from '../dtos/create-collaboration.dto';
 import { CollaborationEntity } from '../entities/collaboration.entity';
@@ -7,7 +7,6 @@ import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { FileRequiredException } from 'src/commons/errors/file-required';
 import { CollaborationSummaryEntity } from '../entities/collaboration_summary.entity';
-import { CompanyEntity } from '../entities/company.entity';
 import { StripeService } from 'src/modules/stripe/stripe.service';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { ReviewEntity } from '../entities/review.entity';
@@ -91,11 +90,11 @@ export class CollaborationService {
 
     const c = await this.collaborationRepository.findById(collab.id);
 
-    let company = await this.companyRepository.getCompanyById(companyUserId);
-    let influencer = await this.influencerRepository.getInfluencerById(
+    const company = await this.companyRepository.getCompanyById(companyUserId);
+    const influencer = await this.influencerRepository.getInfluencerById(
       collab.influencerId,
     );
-    let conversationExist = await this.conversationService.conversationExists(
+    const conversationExist = await this.conversationService.conversationExists(
       influencer.id,
       company.id,
     );
@@ -263,7 +262,7 @@ export class CollaborationService {
   async getSummariesByInfluencer(
     influencerId: number,
   ): Promise<CollaborationSummaryEntity[]> {
-    let r =
+    const r =
       await this.collaborationRepository.getSummariesByInfluencer(influencerId);
     return r;
   }
@@ -274,8 +273,8 @@ export class CollaborationService {
       'canceled_by_company',
     );
 
-    let c = await this.collaborationRepository.findById(collaborationId);
-    let influencer = await this.influencerRepository.getInfluencerById(
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const influencer = await this.influencerRepository.getInfluencerById(
       c.influencerId,
     );
 
@@ -291,13 +290,15 @@ export class CollaborationService {
       'sent_by_company',
     );
 
-    let collab = await this.collaborationRepository.findById(collaborationId);
-    let company = await this.companyRepository.getCompanyById(collab.companyId);
-    let influencer = await this.influencerRepository.getInfluencerById(
+    const collab = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(
+      collab.companyId,
+    );
+    const influencer = await this.influencerRepository.getInfluencerById(
       collab.influencerId,
     );
 
-    let conversationExist = await this.conversationService.conversationExists(
+    const conversationExist = await this.conversationService.conversationExists(
       influencer.id,
       company.id,
     );
@@ -388,9 +389,9 @@ export class CollaborationService {
       'in_progress',
     );
 
-    let c = await this.collaborationRepository.findById(collaborationId);
-    let company = await this.companyRepository.getCompanyById(c.companyId);
-    let influencer = await this.influencerRepository.getInfluencerById(
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(c.companyId);
+    const influencer = await this.influencerRepository.getInfluencerById(
       c.influencerId,
     );
 
@@ -532,7 +533,7 @@ export class CollaborationService {
     authorId: number,
     reviewedId: number,
   ): Promise<ReviewEntity | null> {
-    let r = await this.collaborationRepository.getReview(
+    const r = await this.collaborationRepository.getReview(
       collaborationId,
       authorId,
       reviewedId,
@@ -541,12 +542,13 @@ export class CollaborationService {
   }
 
   async getReviewsByAuthor(authorId: number): Promise<ReviewEntity[]> {
-    let r = await this.collaborationRepository.getReviewsByAuthor(authorId);
+    const r = await this.collaborationRepository.getReviewsByAuthor(authorId);
     return r;
   }
 
   async getReviewsByReviewed(reviewedId: number): Promise<ReviewEntity[]> {
-    let r = await this.collaborationRepository.getReviewsByReviewed(reviewedId);
+    const r =
+      await this.collaborationRepository.getReviewsByReviewed(reviewedId);
     return r;
   }
 
@@ -598,8 +600,8 @@ export class CollaborationService {
       'waiting_for_company_payment',
     );
 
-    let c = await this.collaborationRepository.findById(collaborationId);
-    let company = await this.companyRepository.getCompanyById(c.companyId);
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(c.companyId);
 
     await this.notificationService.send(
       company.userId,
@@ -613,8 +615,8 @@ export class CollaborationService {
       'refused_by_influencer',
     );
 
-    let c = await this.collaborationRepository.findById(collaborationId);
-    let company = await this.companyRepository.getCompanyById(c.companyId);
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(c.companyId);
 
     await this.notificationService.send(
       company.userId,
@@ -628,8 +630,8 @@ export class CollaborationService {
       'pending_company_validation',
     );
 
-    let c = await this.collaborationRepository.findById(collaborationId);
-    let company = await this.companyRepository.getCompanyById(c.companyId);
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(c.companyId);
 
     await this.notificationService.send(
       company.userId,
@@ -640,7 +642,7 @@ export class CollaborationService {
   async getInfluencerReviewSummaries(
     userId: number,
   ): Promise<ReviewSummaryEntity[]> {
-    let r =
+    const r =
       await this.collaborationRepository.getInfluencerReviewSummaries(userId);
     return r;
   }
@@ -648,7 +650,7 @@ export class CollaborationService {
   async getCompanyReviewSummaries(
     userId: number,
   ): Promise<ReviewSummaryEntity[]> {
-    let r =
+    const r =
       await this.collaborationRepository.getCompanyReviewSummaries(userId);
     return r;
   }
@@ -671,7 +673,7 @@ export class CollaborationService {
   async getRecentCollaborationsByInfluencerId(
     userId: number,
   ): Promise<CollaborationSummaryEntity[]> {
-    let r =
+    const r =
       await this.collaborationRepository.getRecentCollaborationsByInfluencerId(
         userId,
       );

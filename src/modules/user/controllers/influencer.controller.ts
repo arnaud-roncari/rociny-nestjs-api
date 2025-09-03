@@ -37,111 +37,58 @@ import { CollaborationService } from '../services/collaboration.service';
 import { UpdateVATNumberDto } from '../dtos/update-vat-number.dto';
 import { CollaborationSummaryDto } from '../dtos/collaboration-summary.dto';
 import { CompanyService } from '../services/company.service';
-import { MinioService } from 'src/modules/minio/minio.service';
-import { BucketType } from 'src/commons/enums/bucket_type';
 import { CreateReviewDto } from '../dtos/create-review.dto';
 import { ReviewDto } from '../dtos/review.dto';
 import { CollaborationDto } from '../dtos/collaboration.dto';
 import { CompanyDto } from '../dtos/company.dto';
 import { CompanyProfileCompletionStatusDto } from '../dtos/company-profile-completion-status.dto';
 import { ReviewSummaryDto } from '../dtos/review_summary.dto';
-import { CollaboratedCompanyEntity } from '../entities/collaborated_company_entity';
 import { CollaboratedCompanyDto } from '../dtos/collaborated_company.dto';
-import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { InfluencerSummaryDto } from '../dtos/influencer-summary.dto';
 import { InfluencerStatisticsDto } from '../dtos/influencer_statistics.dto';
 import { ConversationSummaryDto } from 'src/modules/conversation/dtos/conversation.dto';
 import { ConversationService } from 'src/modules/conversation/conversation.service';
 import { MessageDto } from 'src/modules/conversation/dtos/message.dto';
 import { AddMessageDto } from 'src/modules/conversation/dtos/add-message.dto';
-import { RegisterDeviceDto } from '../dtos/register_device.dto';
-import { UserDeviceEntity } from 'src/modules/notification/entities/user_device.entity';
-import { DeleteDeviceDto } from '../dtos/delete_device_dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user_notification_preference.dto';
 import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
+import { BucketType } from 'src/commons/enums/bucket_type';
+import { MinioService } from 'src/modules/minio/minio.service';
 
 @Controller('influencer')
 export class InfluencerController {
   constructor(
     private readonly influencerService: InfluencerService,
     private readonly companyService: CompanyService,
-    private readonly minioService: MinioService,
     private readonly facebookService: FacebookService,
     private readonly collaborationService: CollaborationService,
     private readonly conversationService: ConversationService,
     private readonly notificationService: NotificationService,
+    private readonly minioService: MinioService,
   ) {}
 
-  /**
-   * Updates the profile picture of the currently authenticated user.
-   *
-   * @param file - The uploaded file containing the new profile picture.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves to an instance of `UpdatedProfilePictureDto` containing the URL of the updated profile picture.
-   *
-   */
-  @ApiOperation({ summary: 'Update user profile picture' })
+  /** Upload or update profile picture */
+  @ApiOperation({ summary: 'Upload or update profile picture' })
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(AuthGuard)
-  @Put('update-profile-picture')
+  @Put('profile-picture')
   async updateProfilePicture(
     @UploadedFile() file: Express.Multer.File,
     @IdFromJWT() userId: number,
   ): Promise<ProfilePictureUpdatedDto> {
-    const newProfilePicture: string =
-      await this.influencerService.updateProfilePicture(userId, file);
-    return new ProfilePictureUpdatedDto(newProfilePicture);
-  }
-
-  /**
-   * Streams the profile picture of a user by their user ID.
-   *
-   * @param userId - The ID of the user to fetch the profile picture for.
-   * @returns A stream of the user's profile picture.
-   */
-  @ApiOperation({ summary: 'Stream profile picture by user ID' })
-  @ApiResponse({ status: 200, description: 'Image stream' })
-  @UseGuards(AuthGuard)
-  @Get('get-profile-picture/:userId')
-  async getProfilePictureByUserId(
-    @Param('userId') userId: number,
-  ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getProfilePicture(userId);
-
-    return new StreamableFile(stream);
-  }
-
-  /**
-   * Streams the profile picture of the currently authenticated user.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A stream of the user's profile picture.
-   */
-  @ApiOperation({ summary: 'Stream user profile picture' })
-  @UseGuards(AuthGuard)
-  @Get('get-company-profile-picture/:filename')
-  async getProfilePicture(
-    @Param('filename') filename: string,
-  ): Promise<StreamableFile> {
-    const file = await this.minioService.getFile(
-      BucketType.company_pictures,
-      filename,
+    const newPic = await this.influencerService.updateProfilePicture(
+      userId,
+      file,
     );
-    return new StreamableFile(file);
+    return new ProfilePictureUpdatedDto(newPic);
   }
 
-  /**
-   * Updates the entire portfolio of the currently authenticated user.
-   *
-   * @param files - The uploaded files representing the new portfolio.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the portfolio is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user portfolio' })
+  /** Replace all portfolio files */
+  @ApiOperation({ summary: 'Replace portfolio' })
   @UseInterceptors(FilesInterceptor('files'))
   @UseGuards(AuthGuard)
-  @Put('update-all-portfolio')
+  @Put('portfolio')
   async updateAllPortfolio(
     @UploadedFiles() files: Express.Multer.File[],
     @IdFromJWT() userId: number,
@@ -153,64 +100,33 @@ export class InfluencerController {
     return new PortfolioUpdatedDto(newPortfolio);
   }
 
+  /** Add pictures to portfolio */
+  @ApiOperation({ summary: 'Add portfolio pictures' })
   @UseInterceptors(FilesInterceptor('files'))
   @UseGuards(AuthGuard)
-  @Put('add-pictures-to-portfolio')
-  async AddPicturesToPortfolio(
+  @Post('portfolio/pictures')
+  async addPicturesToPortfolio(
     @UploadedFiles() files: Express.Multer.File[],
     @IdFromJWT() userId: number,
-  ): Promise<any> {
+  ): Promise<void> {
     await this.influencerService.addPicturesToPortfolio(userId, files);
   }
 
+  /** Remove picture from portfolio */
+  @ApiOperation({ summary: 'Remove portfolio picture' })
   @UseGuards(AuthGuard)
-  @Delete('remove-picture-from-portfolio/:picture_url')
-  async RemovePictureFromPortfolio(
+  @Delete('portfolio/pictures/:picture_url')
+  async removePictureFromPortfolio(
     @IdFromJWT() userId: number,
     @Param('picture_url') pictureUrl: string,
-  ): Promise<any> {
+  ): Promise<void> {
     await this.influencerService.removePictureFromPortfolio(userId, pictureUrl);
   }
 
-  /**
-   * Retrieves a specific portfolio file of the currently authenticated user.
-   *
-   * @param name - The name of the portfolio file to retrieve.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A stream of the requested portfolio file.
-   */
-  @ApiOperation({ summary: 'Get specific portfolio file' })
+  /** Update name */
+  @ApiOperation({ summary: 'Update name' })
   @UseGuards(AuthGuard)
-  @Get('get-portfolio/:name')
-  async getPortfolio(
-    @IdFromJWT() userId: number,
-    @Param('name') name: string,
-  ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getPortfolio(userId, name);
-    return new StreamableFile(stream);
-  }
-
-  @ApiOperation({ summary: 'Get specific portfolio file' })
-  @UseGuards(AuthGuard)
-  @Get('get-portfolio/:name/:user_id')
-  async getPortfolioByUserId(
-    @Param('user_id') userId: number,
-    @Param('name') name: string,
-  ): Promise<StreamableFile> {
-    const stream = await this.influencerService.getPortfolio(userId, name);
-    return new StreamableFile(stream);
-  }
-
-  /**
-   * Updates the name of the currently authenticated user.
-   *
-   * @param name - The new name to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the name is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user name' })
-  @UseGuards(AuthGuard)
-  @Put('update-name')
+  @Put('name')
   async updateName(
     @IdFromJWT() userId: number,
     @Body() body: UpdateNameDto,
@@ -218,8 +134,10 @@ export class InfluencerController {
     await this.influencerService.updateName(userId, body.name);
   }
 
+  /** Update VAT number */
+  @ApiOperation({ summary: 'Update VAT number' })
   @UseGuards(AuthGuard)
-  @Put('update-vat-number')
+  @Put('vat-number')
   async updateVATNumber(
     @IdFromJWT() userId: number,
     @Body() body: UpdateVATNumberDto,
@@ -227,16 +145,10 @@ export class InfluencerController {
     await this.influencerService.updateVATNumber(userId, body.vat_number);
   }
 
-  /**
-   * Updates the description of the currently authenticated user.
-   *
-   * @param description - The new description to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the description is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user description' })
+  /** Update description */
+  @ApiOperation({ summary: 'Update description' })
   @UseGuards(AuthGuard)
-  @Put('update-description')
+  @Put('description')
   async updateDescription(
     @IdFromJWT() userId: number,
     @Body() body: UpdateDescriptionDto,
@@ -244,16 +156,10 @@ export class InfluencerController {
     await this.influencerService.updateDescription(userId, body.description);
   }
 
-  /**
-   * Updates the department of the currently authenticated user.
-   *
-   * @param department - The new department to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the department is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user department' })
+  /** Update department */
+  @ApiOperation({ summary: 'Update department' })
   @UseGuards(AuthGuard)
-  @Put('update-department')
+  @Put('department')
   async updateDepartment(
     @IdFromJWT() userId: number,
     @Body() body: UpdateDepartmentDto,
@@ -261,16 +167,10 @@ export class InfluencerController {
     await this.influencerService.updateDepartment(userId, body.department);
   }
 
-  /**
-   * Updates the themes of the currently authenticated user.
-   *
-   * @param themes - The new themes to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the themes are successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user themes' })
+  /** Update themes */
+  @ApiOperation({ summary: 'Update themes' })
   @UseGuards(AuthGuard)
-  @Put('update-themes')
+  @Put('themes')
   async updateThemes(
     @IdFromJWT() userId: number,
     @Body() body: UpdateThemesDto,
@@ -278,20 +178,13 @@ export class InfluencerController {
     await this.influencerService.updateThemes(userId, body.themes);
   }
 
-  /**
-   * Updates the target audience of the currently authenticated user.
-   *
-   * @param targetAudience - The new target audience to update.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the target audience is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update user target audience' })
+  /** Update target audience */
+  @ApiOperation({ summary: 'Update target audience' })
   @UseGuards(AuthGuard)
-  @Put('update-target-audience')
+  @Put('target-audience')
   async updateTargetAudience(
-    @Body() body: UpdateTargetAudienceDto,
-
     @IdFromJWT() userId: number,
+    @Body() body: UpdateTargetAudienceDto,
   ): Promise<void> {
     await this.influencerService.updateTargetAudience(
       userId,
@@ -299,16 +192,10 @@ export class InfluencerController {
     );
   }
 
-  /**
-   * Adds a social network to the user's profile.
-   *
-   * @param body - The details of the social network to add.
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves when the social network is successfully added.
-   */
-  @ApiOperation({ summary: 'Add a social network to user profile' })
+  /** Add social network */
+  @ApiOperation({ summary: 'Add social network' })
   @UseGuards(AuthGuard)
-  @Post('add-social-network')
+  @Post('social-networks')
   async addSocialNetwork(
     @IdFromJWT() userId: number,
     @Body() body: CreateSocialNetworkDto,
@@ -320,15 +207,10 @@ export class InfluencerController {
     );
   }
 
-  /**
-   * Retrieves the social networks of the currently authenticated user.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns A promise that resolves to the list of social networks.
-   */
-  @ApiOperation({ summary: 'Get user social networks' })
+  /** Get social networks */
+  @ApiOperation({ summary: 'Get social networks' })
   @UseGuards(AuthGuard)
-  @Get('get-social-networks')
+  @Get('social-networks')
   async getSocialNetworks(
     @IdFromJWT() userId: number,
   ): Promise<SocialNetworkDto[]> {
@@ -336,53 +218,34 @@ export class InfluencerController {
     return SocialNetworkDto.fromEntities(sn);
   }
 
-  /**
-   * Deletes a social network from the user's profile.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @param socialNetworkId - The ID of the social network to delete.
-   * @returns A promise that resolves when the social network is successfully deleted.
-   */
-  @ApiOperation({ summary: 'Delete a social network from user profile' })
+  /** Delete social network */
+  @ApiOperation({ summary: 'Delete social network' })
   @UseGuards(AuthGuard)
-  @Delete('delete-social-network/:id')
+  @Delete('social-networks/:id')
   async deleteSocialNetwork(
     @IdFromJWT() userId: number,
-    @Param('id') socialNetworkId: string,
+    @Param('id') id: string,
   ): Promise<void> {
-    await this.influencerService.deleteSocialNetwork(userId, socialNetworkId);
+    await this.influencerService.deleteSocialNetwork(userId, id);
   }
 
-  /**
-   * Updates a social network in the user's profile.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @param socialNetworkId - The ID of the social network to update.
-   * @param body - The new details of the social network.
-   * @returns A promise that resolves when the social network is successfully updated.
-   */
-  @ApiOperation({ summary: 'Update a social network in user profile' })
+  /** Update social network */
+  @ApiOperation({ summary: 'Update social network' })
   @UseGuards(AuthGuard)
-  @Put('update-social-network')
+  @Put('social-networks/:id')
   async updateSocialNetwork(
     @IdFromJWT() userId: number,
+    @Param('id') id: string,
     @Body() body: UpdateSocialNetworkDto,
   ): Promise<void> {
-    await this.influencerService.updateSocialNetwork(userId, body.id, body.url);
+    await this.influencerService.updateSocialNetwork(userId, id, body.url);
   }
 
-  /**
-   * Adds a new legal document for the user.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @param type - The type of the legal document to be added.
-   * @param file - The file to be uploaded as the legal document.
-   * @returns A promise that resolves when the document is successfully added.
-   */
-  @ApiOperation({ summary: 'Add a new legal document for the user' })
+  /** Add legal document */
+  @ApiOperation({ summary: 'Add legal document' })
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  @Post('add-legal-document/:type')
+  @Post('legal-documents/:type')
   async addLegalDocument(
     @IdFromJWT() userId: number,
     @Param('type') type: LegalDocumentType,
@@ -391,181 +254,134 @@ export class InfluencerController {
     await this.influencerService.addLegalDocument(userId, type, file);
   }
 
-  /**
-   * Deletes a legal document of the user based on the document type.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @param type - The type of the legal document to be deleted.
-   * @returns A promise that resolves when the document is successfully deleted.
-   */
-  @ApiOperation({ summary: 'Delete a legal document for the user' })
+  /** Delete legal document */
+  @ApiOperation({ summary: 'Delete legal document' })
   @UseGuards(AuthGuard)
-  @Delete('delete-legal-document/:type')
+  @Delete('legal-documents/:type')
   async deleteLegalDocument(
-    @Param('type') type: LegalDocumentType,
     @IdFromJWT() userId: number,
+    @Param('type') type: LegalDocumentType,
   ): Promise<void> {
     await this.influencerService.deleteLegalDocument(userId, type);
   }
 
-  /**
-   * Retrieves the status of a specific legal document for the user.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @param type - The type of the legal document to check the status for.
-   * @returns The status of the legal document.
-   */
-  @ApiOperation({ summary: 'Get the status of a legal document for the user' })
+  /** Get legal document status */
+  @ApiOperation({ summary: 'Get legal document status' })
   @UseGuards(AuthGuard)
-  @Get('get-legal-document-status/:type')
+  @Get('legal-documents/:type/status')
   async getLegalDocumentStatus(
-    @Param('type') type: LegalDocumentType,
     @IdFromJWT() userId: number,
+    @Param('type') type: LegalDocumentType,
   ): Promise<any> {
     const status = await this.influencerService.getLegalDocumentStatus(
       userId,
       type,
     );
-    return { status: status };
+    return { status };
   }
 
-  /**
-   * Retrieves the account link for the user to complete their Stripe onboarding.
-   *
-   * @param userId - The ID of the user extracted from the JWT token.
-   * @returns The URL of the account link for Stripe onboarding.
-   */
-  @ApiOperation({
-    summary: 'Get the Stripe account link for the user to complete onboarding',
-  })
+  /** Check if influencer completed legal documents */
+  @ApiOperation({ summary: 'Check if legal documents completed' })
   @UseGuards(AuthGuard)
-  @Get('stripe/account-link')
+  @Get('legal-documents/completed')
+  async hasCompletedLegalDocuments(@IdFromJWT() userId: number): Promise<any> {
+    const done = await this.influencerService.hasCompletedDocuments(userId);
+    return { has_completed: done };
+  }
+
+  /** Get Stripe onboarding link */
+  @ApiOperation({ summary: 'Get Stripe onboarding link' })
+  @UseGuards(AuthGuard)
+  @Get('payments/account-link')
   async getStripeAccountLink(
     @IdFromJWT() userId: number,
   ): Promise<{ url: string }> {
     const url = await this.influencerService.getStripeAccountLink(userId);
-
-    return { url: url };
+    return { url };
   }
 
-  /**
-   * Checks if the influencer has completed all required legal documents.
-   *
-   * @param userId - Extracted from JWT, identifies the current user.
-   * @returns An object `{ has_completed: boolean }` indicating completion status.
-   *
-   * @route GET /has-completed/legal-documents
-   * @access Protected (requires valid JWT)
-   */
-  @ApiOperation({ summary: 'Check if influencer completed legal documents' })
+  /** Check if Stripe onboarding completed */
+  @ApiOperation({ summary: 'Check if Stripe onboarding completed' })
   @UseGuards(AuthGuard)
-  @Get('has-completed/legal-documents')
-  async hasCompletedLegalDocuments(@IdFromJWT() userId: number): Promise<any> {
-    const hasCompleted =
-      await this.influencerService.hasCompletedDocuments(userId);
-    return { has_completed: hasCompleted };
-  }
-
-  /**
-   * Checks if the influencer has completed their Stripe account setup.
-   *
-   * @param userId - Extracted from JWT, identifies the current user.
-   * @returns An object `{ has_completed: boolean }` indicating Stripe onboarding status.
-   *
-   * @route GET /has-completed/stripe
-   * @access Protected (requires valid JWT)
-   */
-  @ApiOperation({ summary: 'Check if influencer completed Stripe onboarding' })
-  @UseGuards(AuthGuard)
-  @Get('has-completed/stripe')
+  @Get('payments/completed')
   async hasCompletedStripe(@IdFromJWT() userId: number): Promise<any> {
-    const hasCompleted =
-      await this.influencerService.hasCompletedStripe(userId);
-    return { has_completed: hasCompleted };
+    const done = await this.influencerService.hasCompletedStripe(userId);
+    return { has_completed: done };
   }
 
-  @ApiOperation({
-    summary: 'Get Stripe Express dashboard link',
-    description: `Returns a short-lived login URL to the influencer's Stripe Express dashboard. 
-  This allows the user to manage their payout information and account settings directly on Stripe.`,
-  })
+  /** Get Stripe login link */
+  @ApiOperation({ summary: 'Get Stripe login link' })
   @UseGuards(AuthGuard)
-  @Get('stripe/login-link')
+  @Get('payments/login-link')
   async getAccountSettingsLink(@IdFromJWT() userId: number) {
     const url = await this.influencerService.createLoginLink(userId);
     return { url };
   }
 
-  @ApiOperation({})
+  /** Check if Instagram account linked */
+  @ApiOperation({ summary: 'Check if Instagram account linked' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('has-instagram-account')
+  @Get('social/instagram/has-account')
   async hasInstagramAccount(@IdFromJWT() userId: number): Promise<any> {
-    const hasInstagramAccount =
-      await this.facebookService.hasInstagramAccount(userId);
-    return { has_instagram_account: hasInstagramAccount };
+    const hasAcc = await this.facebookService.hasInstagramAccount(userId);
+    return { has_instagram_account: hasAcc };
   }
 
-  @ApiOperation({})
+  /** Get Instagram account details */
+  @ApiOperation({ summary: 'Get Instagram account' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('instagram')
+  @Get('social/instagram')
   async getInstagramAccount(
     @IdFromJWT() userId: number,
   ): Promise<InstagramAccountDto> {
     await this.facebookService.refreshInstagramStatistics(userId);
-    const instagramAccount =
-      await this.facebookService.getInstagramAccount(userId);
-    return InstagramAccountDto.fromEntity(instagramAccount);
+    const acc = await this.facebookService.getInstagramAccount(userId);
+    return InstagramAccountDto.fromEntity(acc);
   }
 
-  @ApiOperation({})
+  /** Link a fetched Instagram account */
+  @ApiOperation({ summary: 'Link fetched Instagram account' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('instagram/:fetched_instagram_account_id')
+  @Get('social/instagram/:fetched_instagram_account_id')
   async createInstagramAccount(
     @IdFromJWT() userId: number,
-    @Param('fetched_instagram_account_id') fetchedInstagramAccountId: string,
+    @Param('fetched_instagram_account_id') fetchedId: string,
   ): Promise<void> {
-    await this.facebookService.createInstagramAccount(
-      userId,
-      fetchedInstagramAccountId,
-    );
+    await this.facebookService.createInstagramAccount(userId, fetchedId);
   }
 
-  @ApiOperation({})
+  /** Get influencer profile */
+  @ApiOperation({ summary: 'Get influencer profile' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('has-completed-profile')
-  async hasCompletedProfile(@IdFromJWT() userId: number): Promise<any> {
-    let hasCompletedProfile =
-      await this.influencerService.hasCompletedProfile(userId);
-    return { has_completed_profile: hasCompletedProfile };
-  }
-
-  @ApiOperation({})
-  @UseGuards(AuthGuard)
-  @ApiResponse({})
   @Get()
   async getInfluencer(@IdFromJWT() userId: number): Promise<InfluencerDto> {
-    let influencer = await this.influencerService.getInfluencer(userId);
-    let socialNetworks = await this.influencerService.getSocialNetworks(userId);
-    /// Add statistics
-    return InfluencerDto.fromEntity(influencer, socialNetworks);
+    const influencer = await this.influencerService.getInfluencer(userId);
+    const sn = await this.influencerService.getSocialNetworks(userId);
+    return InfluencerDto.fromEntity(influencer, sn);
   }
 
-  @ApiOperation({})
+  /** Check if profile completed */
+  @ApiOperation({ summary: 'Check if profile completed' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('get-profile-completion-status')
+  @Get('profile/completed')
+  async hasCompletedProfile(@IdFromJWT() userId: number): Promise<any> {
+    const done = await this.influencerService.hasCompletedProfile(userId);
+    return { has_completed_profile: done };
+  }
+
+  /** Get profile completion status */
+  @ApiOperation({ summary: 'Get profile completion status' })
+  @UseGuards(AuthGuard)
+  @Get('profile/completion-status')
   async getProfileCompletionStatus(
     @IdFromJWT() userId: number,
   ): Promise<InfluencerProfileCompletionStatusDto> {
-    let e = await this.influencerService.getProfileCompletionStatus(userId);
+    const e = await this.influencerService.getProfileCompletionStatus(userId);
     return InfluencerProfileCompletionStatusDto.fromEntity(e);
   }
 
-  @ApiOperation({ summary: 'Get all collaborations for the influencer' })
+  /** Get all collaborations for influencer */
+  @ApiOperation({ summary: 'Get all collaborations' })
   @UseGuards(AuthGuard)
   @Get('collaborations')
   async getInfluencerCollaborations(
@@ -574,45 +390,10 @@ export class InfluencerController {
     return this.collaborationService.getCollaborationsByInfluencer(userId);
   }
 
+  /** Get collaboration summaries */
+  @ApiOperation({ summary: 'Get collaboration summaries' })
   @UseGuards(AuthGuard)
-  @Get('get-platform-quote/:collaboration_id')
-  async getPlatformQuote(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<StreamableFile> {
-    let f = await this.collaborationService.getPlatformQuote(collaborationId);
-    return new StreamableFile(f);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('get-platform-invoice/:collaboration_id')
-  async getPlatformInvoice(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<StreamableFile> {
-    let f = await this.collaborationService.getPlatformInvoice(collaborationId);
-    return new StreamableFile(f);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('get-influencer-quote/:collaboration_id')
-  async getInfluencerQuote(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<StreamableFile> {
-    let f = await this.collaborationService.getInfluencerQuote(collaborationId);
-    return new StreamableFile(f);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('get-influencer-invoice/:collaboration_id')
-  async getInfluencerInvoice(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<StreamableFile> {
-    let f =
-      await this.collaborationService.getInfluencerInvoice(collaborationId);
-    return new StreamableFile(f);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('get-collaboration-summaries')
+  @Get('collaborations/summaries')
   async getCollaborationSummaries(
     @IdFromJWT() userId: number,
   ): Promise<CollaborationSummaryDto[]> {
@@ -623,36 +404,38 @@ export class InfluencerController {
     return CollaborationSummaryDto.fromEntities(summaries);
   }
 
+  /** Accept collaboration */
+  @ApiOperation({ summary: 'Accept collaboration' })
   @UseGuards(AuthGuard)
-  @Get('accept-collaboration/:collaboration_id')
-  async acceptCollaboration(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<void> {
-    await this.collaborationService.acceptCollaboration(collaborationId);
+  @Post('collaborations/:id/accept')
+  async acceptCollaboration(@Param('id') id: number): Promise<void> {
+    await this.collaborationService.acceptCollaboration(id);
   }
 
+  /** Refuse collaboration */
+  @ApiOperation({ summary: 'Refuse collaboration' })
   @UseGuards(AuthGuard)
-  @Get('refuse-collaboration/:collaboration_id')
-  async refuseCollaboration(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<void> {
-    await this.collaborationService.refuseCollaboration(collaborationId);
+  @Post('collaborations/:id/refuse')
+  async refuseCollaboration(@Param('id') id: number): Promise<void> {
+    await this.collaborationService.refuseCollaboration(id);
   }
 
+  /** End collaboration */
+  @ApiOperation({ summary: 'End collaboration' })
   @UseGuards(AuthGuard)
-  @Get('end-collaboration/:collaboration_id')
-  async endCollaboration(
-    @Param('collaboration_id') collaborationId: number,
-  ): Promise<void> {
-    await this.collaborationService.endCollaboration(collaborationId);
+  @Post('collaborations/:id/end')
+  async endCollaboration(@Param('id') id: number): Promise<void> {
+    await this.collaborationService.endCollaboration(id);
   }
 
+  /** Create review */
+  @ApiOperation({ summary: 'Create review' })
   @UseGuards(AuthGuard)
-  @Post('create-review')
+  @Post('reviews')
   async createReview(
     @Body() body: CreateReviewDto,
-    @IdFromJWT() userId,
-  ): Promise<any> {
+    @IdFromJWT() userId: number,
+  ): Promise<void> {
     await this.collaborationService.createReview(
       body.collaboration_id,
       userId,
@@ -662,186 +445,198 @@ export class InfluencerController {
     );
   }
 
+  /** Get review */
+  @ApiOperation({ summary: 'Get review' })
   @UseGuards(AuthGuard)
-  @Get('get-review/:collaboration_id/:author_id/:reviewed_id')
+  @Get('reviews/:collaboration_id/:author_id/:reviewed_id')
   async getReview(
-    @Param('collaboration_id') collaborationId: number,
+    @Param('collaboration_id') collabId: number,
     @Param('author_id') authorId: number,
     @Param('reviewed_id') reviewedId: number,
   ): Promise<any> {
-    let r = await this.collaborationService.getReview(
-      collaborationId,
+    const r = await this.collaborationService.getReview(
+      collabId,
       authorId,
       reviewedId,
     );
-
-    if (r === null) {
-      return { review: null };
-    }
-
+    if (!r) return { review: null };
     return { review: ReviewDto.fromEntity(r) };
   }
 
+  /** Get reviews by author */
+  @ApiOperation({ summary: 'Get reviews by author' })
   @UseGuards(AuthGuard)
-  @Get('get-reviews/author/:author_id')
+  @Get('reviews/author/:id')
   async getReviewsByAuthor(
-    @Param('author_id') authorId: number,
+    @Param('id') authorId: number,
   ): Promise<ReviewDto[]> {
-    let r = await this.collaborationService.getReviewsByAuthor(authorId);
+    const r = await this.collaborationService.getReviewsByAuthor(authorId);
     return ReviewDto.fromEntities(r);
   }
 
+  /** Get reviews by reviewed */
+  @ApiOperation({ summary: 'Get reviews by reviewed' })
   @UseGuards(AuthGuard)
-  @Get('get-reviews/reviewed/:reviewed_id')
+  @Get('reviews/reviewed/:id')
   async getReviewsByReviewed(
-    @Param('reviewed_id') reviewedId: number,
+    @Param('id') reviewedId: number,
   ): Promise<ReviewDto[]> {
-    let r = await this.collaborationService.getReviewsByReviewed(reviewedId);
+    const r = await this.collaborationService.getReviewsByReviewed(reviewedId);
     return ReviewDto.fromEntities(r);
   }
 
-  @ApiOperation({ summary: 'Get collaboration by ID' })
+  /** Get review summaries */
+  @ApiOperation({ summary: 'Get review summaries' })
   @UseGuards(AuthGuard)
-  @Get('get-collaboration/:id')
-  async getCollaboration(@Param('id') id: number): Promise<CollaborationDto> {
-    const collab = await this.collaborationService.getCollaboration(id);
-    return CollaborationDto.fromEntity(collab);
-  }
-
-  @ApiOperation({ summary: '' })
-  @UseGuards(AuthGuard)
-  @Get('get-company/:user_id')
-  async getCompany(@Param('user_id') userId: number): Promise<any> {
-    let company = await this.companyService.getCompany(userId);
-    let socialNetworks = await this.companyService.getSocialNetworks(userId);
-    return CompanyDto.fromEntity(company, socialNetworks);
-  }
-
-  @ApiOperation({ summary: '' })
-  @UseGuards(AuthGuard)
-  @Get('get-company-completion-status/:user_id')
-  async getCompletionStatus(@Param('user_id') userId: number): Promise<any> {
-    let e = await this.companyService.getProfileCompletionStatus(userId);
-    return CompanyProfileCompletionStatusDto.fromEntity(e);
-  }
-
-  @ApiOperation({ summary: '' })
-  @UseGuards(AuthGuard)
-  @Get('get-company-instagram-statistics/:user_id')
-  async getInfluencerInstagramStatistics(
-    @Param('user_id') userId: number,
-  ): Promise<any> {
-    await this.facebookService.refreshInstagramStatistics(userId);
-    const instagramAccount =
-      await this.facebookService.getInstagramAccount(userId);
-    return InstagramAccountDto.fromEntity(instagramAccount);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('get-review-summaries')
+  @Get('reviews/summaries')
   async getReviewSummaries(
     @IdFromJWT() userId: number,
   ): Promise<ReviewSummaryDto[]> {
-    let r =
+    const r =
       await this.collaborationService.getInfluencerReviewSummaries(userId);
     return ReviewSummaryDto.fromEntities(r);
   }
 
+  /** Get company by user ID */
+  @ApiOperation({ summary: 'Get company by user ID' })
   @UseGuards(AuthGuard)
-  @Get('get-collaborated-companies')
+  @Get('companies/:user_id')
+  async getCompany(@Param('user_id') userId: number): Promise<any> {
+    const company = await this.companyService.getCompany(userId);
+    const sn = await this.companyService.getSocialNetworks(userId);
+    return CompanyDto.fromEntity(company, sn);
+  }
+
+  /** Get company profile completion status */
+  @ApiOperation({ summary: 'Get company completion status' })
+  @UseGuards(AuthGuard)
+  @Get('companies/:user_id/completion-status')
+  async getCompletionStatus(@Param('user_id') userId: number): Promise<any> {
+    const e = await this.companyService.getProfileCompletionStatus(userId);
+    return CompanyProfileCompletionStatusDto.fromEntity(e);
+  }
+
+  /** Get company Instagram statistics */
+  @ApiOperation({ summary: 'Get company Instagram statistics' })
+  @UseGuards(AuthGuard)
+  @Get('companies/:user_id/instagram-statistics')
+  async getInfluencerInstagramStatistics(
+    @Param('user_id') userId: number,
+  ): Promise<any> {
+    await this.facebookService.refreshInstagramStatistics(userId);
+    const acc = await this.facebookService.getInstagramAccount(userId);
+    return InstagramAccountDto.fromEntity(acc);
+  }
+
+  /** Get collaborated companies */
+  @ApiOperation({ summary: 'Get collaborated companies' })
+  @UseGuards(AuthGuard)
+  @Get('companies/collaborated')
   async getCollaboratedCompanies(
     @IdFromJWT() userId: number,
   ): Promise<CollaboratedCompanyDto[]> {
-    let r = await this.collaborationService.getCollaboratedCompanies(userId);
+    const r = await this.collaborationService.getCollaboratedCompanies(userId);
     return CollaboratedCompanyDto.fromEntities(r);
   }
 
+  /** Get influencers collaborated with a company */
+  @ApiOperation({ summary: 'Get influencers collaborated with company' })
   @UseGuards(AuthGuard)
-  @Get('get-company-collaborated-influencer/:company_user_id')
+  @Get('companies/:company_user_id/collaborated-influencers')
   async getCompanyCollaboratedInfluencers(
     @Param('company_user_id') userId: number,
   ): Promise<InfluencerSummaryDto[]> {
-    let r = await this.collaborationService.getCollaboratedInfluencers(userId);
+    const r =
+      await this.collaborationService.getCollaboratedInfluencers(userId);
     return InfluencerSummaryDto.fromEntities(r);
   }
 
+  /** Get influencer statistics */
+  @ApiOperation({ summary: 'Get dashboard statistics' })
   @UseGuards(AuthGuard)
-  @Get('get-dashboard/statistics')
+  @Get('dashboard/statistics')
   async getStatistics(
     @IdFromJWT() userId: number,
   ): Promise<InfluencerStatisticsDto> {
-    let r = await this.influencerService.getStatistics(userId);
+    const r = await this.influencerService.getStatistics(userId);
     return InfluencerStatisticsDto.fromEntity(r);
   }
 
+  /** Get recent collaborations */
+  @ApiOperation({ summary: 'Get recent collaborations' })
   @UseGuards(AuthGuard)
-  @Get('get-dashboard/collaborations')
+  @Get('dashboard/collaborations')
   async getRecentCollaborations(
     @IdFromJWT() userId: number,
   ): Promise<CollaborationSummaryDto[]> {
-    let r =
+    const r =
       await this.collaborationService.getRecentCollaborationsByInfluencerId(
         userId,
       );
     return CollaborationSummaryDto.fromEntities(r);
   }
 
+  /** Get all conversations */
+  @ApiOperation({ summary: 'Get all conversations' })
   @UseGuards(AuthGuard)
-  @Get('get-all-conversations')
+  @Get('conversations')
   async getAllConversations(
     @IdFromJWT() userId: number,
   ): Promise<ConversationSummaryDto[]> {
-    let influencer = await this.influencerService.getInfluencer(userId);
-    let r = await this.conversationService.getConversations(influencer.id);
+    const influencer = await this.influencerService.getInfluencer(userId);
+    const r = await this.conversationService.getConversations(influencer.id);
     return ConversationSummaryDto.fromEntities(r);
   }
 
+  /** Get messages by conversation */
+  @ApiOperation({ summary: 'Get messages by conversation' })
   @UseGuards(AuthGuard)
-  @Get('get-messages-by-conversation/:conversation_id')
+  @Get('conversations/:conversation_id/messages')
   async getMessagesByConversationId(
     @Param('conversation_id') conversationId: number,
   ): Promise<MessageDto[]> {
-    let r =
+    const r =
       await this.conversationService.getMessagesByConversationId(
         conversationId,
       );
     return MessageDto.fromEntities(r);
   }
 
+  /** Mark messages as read */
+  @ApiOperation({ summary: 'Mark messages as read' })
   @UseGuards(AuthGuard)
-  @Get('mark-messages-as-read/:conversation_id')
+  @Post('conversations/:conversation_id/mark-as-read')
   async markConversationMessagesAsRead(
     @Param('conversation_id') conversationId: number,
   ): Promise<void> {
-    let r = await this.conversationService.markConversationMessagesAsRead(
+    await this.conversationService.markConversationMessagesAsRead(
       conversationId,
       'influencer',
     );
   }
 
+  /** Add message to conversation */
+  @ApiOperation({ summary: 'Add message to conversation' })
   @UseGuards(AuthGuard)
-  @Post('add-message')
+  @Post('conversations/:conversation_id/messages')
   async addMessage(
     @IdFromJWT() userId: number,
+    @Param('conversation_id') conversationId: number,
     @Body() dto: AddMessageDto,
   ): Promise<void> {
     const influencer = await this.influencerService.getInfluencer(userId);
-
-    const message = await this.conversationService.addMessage(
-      dto.conversation_id,
+    await this.conversationService.addMessage(
+      conversationId,
       'influencer',
       influencer.id,
       dto.content,
     );
   }
 
-  // @Post('testing')
-  // async testing(): Promise<void> {
-  //   await this.conversationService.addMessage(11, 'influencer', 41, 'Testing');
-  // }
-
+  /** Get notification preferences */
+  @ApiOperation({ summary: 'Get notification preferences' })
   @UseGuards(AuthGuard)
-  @Get('preferences')
+  @Get('notifications/preferences')
   async getPreferences(
     @IdFromJWT() userId: number,
   ): Promise<UserNotificationPreferenceDto[]> {
@@ -850,8 +645,10 @@ export class InfluencerController {
     return UserNotificationPreferenceDto.fromEntities(entities);
   }
 
+  /** Update notification preference */
+  @ApiOperation({ summary: 'Update notification preference' })
   @UseGuards(AuthGuard)
-  @Put('preference')
+  @Put('notifications/preferences')
   async updatePreference(
     @IdFromJWT() userId: number,
     @Body() dto: UpdateUserNotificationPreferenceDto,
@@ -861,5 +658,108 @@ export class InfluencerController {
       dto.type,
       dto.enabled,
     );
+  }
+
+  /** Get specific portfolio file */
+  @ApiOperation({ summary: 'Get specific portfolio file' })
+  @UseGuards(AuthGuard)
+  @Get('portfolio/:name')
+  async getPortfolioByUserId(
+    @Param('name') name: string,
+  ): Promise<StreamableFile> {
+    const stream = await this.influencerService.getPortfolio(name);
+    return new StreamableFile(stream);
+  }
+
+  /** Stream profile picture by filename */
+  @ApiOperation({ summary: 'Stream profile picture by filename' })
+  @Get('profile-pictures/:filename')
+  async getProfilePicturebyFilename(
+    @Param('filename') filename: string,
+  ): Promise<StreamableFile> {
+    const stream =
+      await this.influencerService.getProfilePictureByFilename(filename);
+    return new StreamableFile(stream);
+  }
+
+  /**
+   * Get companies an influencer has collaborated with.
+   */
+  @UseGuards(AuthGuard)
+  @Get('collaborations/collaborated-companies')
+  async getInfluencerCollaboratedCompanies(
+    @IdFromJWT() userId: number,
+  ): Promise<CollaboratedCompanyDto[]> {
+    const r = await this.collaborationService.getCollaboratedCompanies(userId);
+    return CollaboratedCompanyDto.fromEntities(r);
+  }
+
+  /** Get platform quote */
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/platform-quote')
+  async getPlatformQuote(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f = await this.collaborationService.getPlatformQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  /** Get platform invoice */
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/platform-invoice')
+  async getPlatformInvoice(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f =
+      await this.collaborationService.getPlatformInvoice(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  /** Get influencer quote */
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/influencer-quote')
+  async getInfluencerQuote(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f =
+      await this.collaborationService.getInfluencerQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  /** Get influencer invoice */
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/influencer-invoice')
+  async getInfluencerInvoice(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f =
+      await this.collaborationService.getInfluencerInvoice(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  /**
+   * Stream a collaboration file by filename.
+   */
+  @ApiOperation({ summary: 'Stream collaboration file' })
+  @ApiResponse({ status: 200, description: 'Returns a file stream' })
+  @UseGuards(AuthGuard)
+  @Get('collaborations/files/:filename')
+  async getCollaborationFile(
+    @Param('filename') filename: string,
+  ): Promise<StreamableFile> {
+    const file = await this.minioService.getFile(
+      BucketType.collaborations,
+      filename,
+    );
+    return new StreamableFile(file);
+  }
+
+  /** Get collaboration by ID */
+  @ApiOperation({ summary: 'Get collaboration by ID' })
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id')
+  async getCollaboration(@Param('id') id: number): Promise<CollaborationDto> {
+    const collab = await this.collaborationService.getCollaboration(id);
+    return CollaborationDto.fromEntity(collab);
   }
 }

@@ -35,7 +35,7 @@ import { DeleteDeviceDto } from '../dtos/delete_device_dto';
 import { RegisterDeviceDto } from '../dtos/register_device.dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 
-@Controller('user/auth')
+@Controller('auth')
 export class UserAuthController {
   constructor(
     private readonly authService: UserAuthService,
@@ -45,11 +45,9 @@ export class UserAuthController {
   ) {}
 
   /**
-   * Handle POST requests to log a user.
-   * @param LoginDto - Data Transfer Object (DTO) containing the details of the user to log.
-   * @returns The JWT of the currently logged-in user.
+   * Logs a user in using email and password.
    */
-  @ApiOperation({ description: 'Login with an user account' })
+  @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ type: LoggedDto })
   @Post('login')
   async login(@Body() dto: LoginDto): Promise<LoggedDto> {
@@ -59,20 +57,19 @@ export class UserAuthController {
   }
 
   /**
-   * Handle POST requests to register a new user.
-   * @param RegisterDto - Data Transfer Object (DTO) containing the details of the user to register.
-   * @returns void.
+   * Registers a new user account.
    */
-  @ApiOperation({})
-  @ApiResponse({})
+  @ApiOperation({ summary: 'Register a new user' })
   @Post('register')
   async register(@Body() dto: RegisterDto): Promise<void> {
     const { email, password, account_type } = dto;
     await this.authService.register(email, password, account_type);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Verifies email registration with a code.
+   */
+  @ApiOperation({ summary: 'Verify registration with a code' })
   @Post('register/verify')
   async verifyRegisterCode(
     @Body() dto: VerifyRegisterCodeDto,
@@ -82,27 +79,31 @@ export class UserAuthController {
     return new LoggedDto(accessToken);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Post('register/resent-verification-code')
-  async resentRegisterVerificationCode(
+  /**
+   * Resends verification code for registration.
+   */
+  @ApiOperation({ summary: 'Resend registration verification code' })
+  @Post('register/resend-code')
+  async resendRegisterVerificationCode(
     @Body() dto: ResentRegisterVerificationCodeDto,
   ): Promise<void> {
-    const { email } = dto;
-    await this.authService.resentRegisterVerificationCode(email);
+    await this.authService.resentRegisterVerificationCode(dto.email);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Post('forgot-password')
+  /**
+   * Initiates password reset by email.
+   */
+  @ApiOperation({ summary: 'Send forgot password code' })
+  @Post('password/forgot')
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
-    const { email } = dto;
-    await this.authService.forgotPassword(email);
+    await this.authService.forgotPassword(dto.email);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Post('forgot-password/verify')
+  /**
+   * Verifies forgot password code and updates password.
+   */
+  @ApiOperation({ summary: 'Verify forgot password code and reset password' })
+  @Post('password/forgot/verify')
   async verifyForgotPassword(
     @Body() dto: VerifyForgotPasswordDto,
   ): Promise<void> {
@@ -110,35 +111,40 @@ export class UserAuthController {
     await this.authService.verifyForgotPassword(email, password, code);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Post('forgot-password/resent-verification-code')
-  async resentForgotPasswordVerificationCode(
+  /**
+   * Resends forgot password code.
+   */
+  @ApiOperation({ summary: 'Resend forgot password verification code' })
+  @Post('password/forgot/resend-code')
+  async resendForgotPasswordVerificationCode(
     @Body() dto: ResentForgotPasswordVerificationCodeDto,
   ): Promise<void> {
-    const { email } = dto;
-    await this.authService.resentForgotPasswordVerificationCode(email);
+    await this.authService.resentForgotPasswordVerificationCode(dto.email);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Get('login-with-google/:id_token')
+  /**
+   * Logs in with Google OAuth.
+   */
+  @ApiOperation({ summary: 'Login with Google OAuth' })
+  @Get('login/google/:id_token')
   async loginWithGoogle(@Param('id_token') idToken: string): Promise<any> {
-    const map = await this.authService.loginWithGoogle(idToken);
-    return map;
+    return this.authService.loginWithGoogle(idToken);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Get('login-with-apple/:id_token')
+  /**
+   * Logs in with Apple OAuth.
+   */
+  @ApiOperation({ summary: 'Login with Apple OAuth' })
+  @Get('login/apple/:id_token')
   async loginWithApple(@Param('id_token') idToken: string): Promise<any> {
-    const map = await this.authService.loginWithApple(idToken);
-    return map;
+    return this.authService.loginWithApple(idToken);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
-  @Post('complete-oauth-user')
+  /**
+   * Completes OAuth user registration (Google/Apple/Facebook).
+   */
+  @ApiOperation({ summary: 'Complete OAuth user registration' })
+  @Post('oauth/complete')
   async completeOAuthUser(
     @Body() dto: CompleteOAuthGoogleUserDto,
   ): Promise<any> {
@@ -149,8 +155,10 @@ export class UserAuthController {
     return { access_token: jwt };
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Checks if a user is registered locally (email/password).
+   */
+  @ApiOperation({ summary: 'Check if user is registered locally' })
   @UseGuards(AuthGuard)
   @Get('is-registered-locally')
   async isRegisteredLocally(@IdFromJWT() userId: number): Promise<any> {
@@ -159,62 +167,76 @@ export class UserAuthController {
     return { is_registered_locally: isRegisteredLocally };
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Updates the password of the logged-in user.
+   */
+  @ApiOperation({ summary: 'Update password of current user' })
   @UseGuards(AuthGuard)
-  @Put('update-password')
+  @Put('password/update')
   async updatePassword(
     @IdFromJWT() userId: number,
     @Body() dto: UpdatePasswordDto,
   ): Promise<void> {
-    const { password, new_password } = dto;
-    await this.authService.updatePassword(userId, password, new_password);
+    await this.authService.updatePassword(
+      userId,
+      dto.password,
+      dto.new_password,
+    );
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Starts email update flow for logged-in user.
+   */
+  @ApiOperation({ summary: 'Request email update' })
   @UseGuards(AuthGuard)
-  @Post('update-email')
+  @Post('email/update')
   async updateEmail(
     @IdFromJWT() userId: number,
     @Body() dto: UpdateEmailDto,
   ): Promise<void> {
-    const { new_email, password } = dto;
-    await this.authService.updateEmail(userId, password, new_email);
+    await this.authService.updateEmail(userId, dto.password, dto.new_email);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Verifies email update with a code.
+   */
+  @ApiOperation({ summary: 'Verify email update code' })
   @UseGuards(AuthGuard)
-  @Post('update-email/verify')
+  @Post('email/update/verify')
   async verifyUpdateEmail(
     @IdFromJWT() userId: number,
     @Body() dto: VerifyUpdateEmailDto,
   ): Promise<void> {
-    const { new_email, code } = dto;
-    await this.authService.verifyUpdateEmail(userId, new_email, code);
+    await this.authService.verifyUpdateEmail(userId, dto.new_email, dto.code);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Resends email update verification code.
+   */
+  @ApiOperation({ summary: 'Resend email update verification code' })
   @UseGuards(AuthGuard)
-  @Post('update-email/resent-verification-code')
-  async resentUpdateEmailVerificationCode(
+  @Post('email/update/resend-code')
+  async resendUpdateEmailVerificationCode(
     @Body() dto: ResentUpdateEmailVerificationCodeDto,
   ): Promise<void> {
-    const { new_email } = dto;
-    await this.authService.resentUpdateEmailVerificationCode(new_email);
+    await this.authService.resentUpdateEmailVerificationCode(dto.new_email);
   }
 
-  @ApiOperation({})
-  @ApiResponse({})
+  /**
+   * Deletes the current logged-in user.
+   */
+  @ApiOperation({ summary: 'Delete current user account' })
   @UseGuards(AuthGuard)
-  @Delete('delete-user')
+  @Delete('delete')
   async deleteUser(@IdFromJWT() userId: number): Promise<void> {
     await this.authService.deleteUser(userId);
   }
 
-  @Get('login-with-facebook')
+  /**
+   * Handles Facebook OAuth deeplink callback.
+   */
+  @ApiOperation({ summary: 'Login with Facebook (OAuth redirect)' })
+  @Get('login/facebook')
   async loginWithFacebook(
     @Query('code') code: string,
     @Query('state') token: string,
@@ -222,25 +244,23 @@ export class UserAuthController {
   ) {
     const payload = this.jwtService.verify(token);
     await this.authService.loginWithFacebook(payload['id'], code);
+
     const deeplink = `rociny://facebook`;
     const html = `
       <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="UTF-8" />
-          <script>
-            window.location.href = '${deeplink}';
-          </script>
-        </head>
+        <head><meta charset="UTF-8" /></head>
+        <body><script>window.location.href = '${deeplink}'</script></body>
       </html>
     `;
-
     res.status(200).send(html);
   }
 
-  @ApiOperation({})
+  /**
+   * Retrieves connected Instagram accounts from Facebook.
+   */
+  @ApiOperation({ summary: 'Get Instagram accounts from Facebook session' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
   @Get('facebook/instagram-accounts')
   async getInstagramAccounts(
     @IdFromJWT() userId: number,
@@ -248,27 +268,36 @@ export class UserAuthController {
     const ia = await this.facebookService.getInstagramAccounts(userId);
     return FetchedInstagramAccountDto.fromEntities(ia);
   }
-  @ApiOperation({})
+
+  /**
+   * Checks if user has an active Facebook session.
+   */
+  @ApiOperation({ summary: 'Check if Facebook session exists' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
-  @Get('facebook/has-session')
+  @Get('facebook/session')
   async hasFacebookSession(@IdFromJWT() userId: number): Promise<any> {
-    const hasSession = await this.facebookService.hasFacebookSession(userId);
-    return { has_session: hasSession };
+    return {
+      has_session: await this.facebookService.hasFacebookSession(userId),
+    };
   }
 
-  @ApiOperation({})
+  /**
+   * Logs out user from Facebook and deletes Instagram accounts.
+   */
+  @ApiOperation({ summary: 'Logout from Facebook and clear Instagram data' })
   @UseGuards(AuthGuard)
-  @ApiResponse({})
   @Delete('facebook/logout')
   async logoutFacebook(@IdFromJWT() userId: number): Promise<void> {
     await this.authService.deleteOauth(userId, 'facebook');
     await this.facebookService.deleteInstagramAccount(userId);
   }
 
-  @UseGuards(AuthGuard)
+  /**
+   * Registers a device for push notifications.
+   */
   @ApiOperation({ summary: 'Register a device for push notifications' })
-  @Post('register-device')
+  @UseGuards(AuthGuard)
+  @Post('devices')
   async registerDevice(
     @IdFromJWT() userId: number,
     @Body() dto: RegisterDeviceDto,
@@ -276,9 +305,12 @@ export class UserAuthController {
     await this.notificationService.registerDevice(userId, dto.onesignal_id);
   }
 
+  /**
+   * Deletes a registered device by its OneSignal ID.
+   */
+  @ApiOperation({ summary: 'Delete a registered device' })
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Delete a device by its OneSignal ID' })
-  @Delete('delete-device')
+  @Delete('devices')
   async deleteDevice(@Body() dto: DeleteDeviceDto): Promise<void> {
     await this.notificationService.deleteDevice(dto.onesignal_id);
   }

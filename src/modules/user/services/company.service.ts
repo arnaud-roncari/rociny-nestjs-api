@@ -31,11 +31,15 @@ export class CompanyService {
   ) {}
 
   /**
-   * Sets the profile picture for a user.
+   * Uploads a new profile picture for the company.
+   * - Removes the previous profile picture if it exists.
+   * - Stores the new picture in Minio.
    *
-   * @param userId - The ID of the user whose profile picture is being set.
-   * @param file - The uploaded file containing the profile picture.
-   * @throws Error if the file is not provided or the user is not found.
+   * @param userId - Company user ID.
+   * @param file - Uploaded file.
+   * @returns The new profile picture filename.
+   * @throws FileRequiredException if no file provided.
+   * @throws UserNotFoundException if user does not exist.
    */
   async updateProfilePicture(
     userId: number,
@@ -50,22 +54,18 @@ export class CompanyService {
       throw new UserNotFoundException();
     }
 
-    // Keep reference to previous profile pictore, to be deleted later
     const oldProfilePicture = user.profilePicture;
 
-    // Upload new profile picture
     const newProfilePicture = await this.minioService.uploadFile(
       file,
       BucketType.company_pictures,
     );
 
-    // Update user
     await this.companyRepository.updateProfilePicture(
       userId,
       newProfilePicture,
     );
 
-    /// Delete previous profile picture
     if (oldProfilePicture) {
       await this.minioService.removeFile(
         BucketType.company_pictures,
@@ -77,26 +77,11 @@ export class CompanyService {
   }
 
   /**
-   * Retrieves the profile picture URL for a user.
+   * Retrieves a company profile picture by filename.
    *
-   * @param userId - The ID of the user whose profile picture is being retrieved.
-   * @returns The URL of the profile picture.
-   * @throws Error if the user is not found or the profile picture does not exist.
+   * @param filename - File name in storage.
+   * @returns Readable stream of the file.
    */
-  async getProfilePicture(userId: number): Promise<internal.Readable> {
-    const user = await this.companyRepository.getCompany(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
-
-    const file = await this.minioService.getFile(
-      BucketType.company_pictures,
-      user.profilePicture,
-    );
-
-    return file;
-  }
-
   async getProfilePictureByFilename(
     filename: string,
   ): Promise<internal.Readable> {
@@ -108,23 +93,12 @@ export class CompanyService {
     return file;
   }
 
-  async getInfluencerProfilePicture(
-    filename: string,
-  ): Promise<internal.Readable> {
-    const file = await this.minioService.getFile(
-      BucketType.influencer_pictures,
-      filename,
-    );
-
-    return file;
-  }
-
   /**
-   * Updates the name of the user.
+   * Updates the company name.
    *
-   * @param userId - The ID of the user whose name is being updated.
-   * @param name - The new name for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Company user ID.
+   * @param name - New company name.
+   * @throws UserNotFoundException if company does not exist.
    */
   async updateName(userId: number, name: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
@@ -135,6 +109,14 @@ export class CompanyService {
     await this.companyRepository.updateName(userId, name);
   }
 
+  /**
+   * Updates the company trade name.
+   * Also updates the trade name in Stripe.
+   *
+   * @param userId - Company user ID.
+   * @param tradeName - New trade name.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async updateTradeName(userId: number, tradeName: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
@@ -147,6 +129,17 @@ export class CompanyService {
     );
     await this.companyRepository.updateTradeName(userId, tradeName);
   }
+
+  /**
+   * Updates the billing address of the company.
+   * Also syncs address with Stripe.
+   *
+   * @param userId - Company user ID.
+   * @param city - City.
+   * @param street - Street.
+   * @param postalCode - Postal code.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async updateBillingAddress(
     userId: number,
     city: string,
@@ -172,6 +165,14 @@ export class CompanyService {
     );
   }
 
+  /**
+   * Updates the VAT number of the company.
+   * Also syncs VAT number with Stripe.
+   *
+   * @param userId - Company user ID.
+   * @param vatNumber - VAT number.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async updateVATNumber(userId: number, vatNumber: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
@@ -183,11 +184,11 @@ export class CompanyService {
   }
 
   /**
-   * Updates the description of the user.
+   * Updates the company description.
    *
-   * @param userId - The ID of the user whose description is being updated.
-   * @param description - The new description for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Company user ID.
+   * @param description - New description.
+   * @throws UserNotFoundException if company does not exist.
    */
   async updateDescription(userId: number, description: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
@@ -199,11 +200,11 @@ export class CompanyService {
   }
 
   /**
-   * Updates the department of the user.
+   * Updates the company department.
    *
-   * @param userId - The ID of the user whose department is being updated.
-   * @param department - The new department for the user.
-   * @throws Error if the user is not found.
+   * @param userId - Company user ID.
+   * @param department - New department.
+   * @throws UserNotFoundException if company does not exist.
    */
   async updateDepartment(userId: number, department: string): Promise<void> {
     const user = await this.companyRepository.getCompany(userId);
@@ -215,12 +216,13 @@ export class CompanyService {
   }
 
   /**
-   * Adds a social network to the user's profile.
+   * Adds a new social network to the company.
    *
-   * @param userId - The ID of the user whose social network is being added.
-   * @param platform - The platform type of the social network (e.g., Instagram, Twitter).
-   * @param url - The URL of the social network profile.
-   * @throws UserNotFoundException if the user is not found.
+   * @param userId - Company user ID.
+   * @param platform - Social network platform type.
+   * @param url - Profile URL.
+   * @throws UserNotFoundException if company does not exist.
+   * @throws SocialNetworkExists if the same platform already exists.
    */
   async createSocialNetwork(
     userId: number,
@@ -250,11 +252,11 @@ export class CompanyService {
   }
 
   /**
-   * Retrieves the social networks of the user.
+   * Retrieves all social networks of a company.
    *
-   * @param userId - The ID of the user.
-   * @returns The list of social networks.
-   * @throws Error if the user is not found.
+   * @param userId - Company user ID.
+   * @returns List of social networks.
+   * @throws UserNotFoundException if company does not exist.
    */
   async getSocialNetworks(userId: number): Promise<SocialNetworkEntity[]> {
     const company = await this.companyRepository.getCompany(userId);
@@ -267,11 +269,11 @@ export class CompanyService {
   }
 
   /**
-   * Deletes a social network from the user's profile.
+   * Deletes a social network by ID.
    *
-   * @param userId - The ID of the user.
-   * @param socialNetworkId - The social network id to delete.
-   * @throws Error if the user is not found or the social network does not exist.
+   * @param userId - Company user ID.
+   * @param socialNetworkId - Social network ID.
+   * @throws UserNotFoundException if company does not exist.
    */
   async deleteSocialNetwork(
     userId: number,
@@ -286,12 +288,12 @@ export class CompanyService {
   }
 
   /**
-   * Updates a social network in the user's profile.
+   * Updates a social network URL.
    *
-   * @param userId - The ID of the user.
-   * @param socialNetworkId
-   * @param url
-   * @throws Error if the user is not found or the social network does not exist.
+   * @param userId - Company user ID.
+   * @param socialNetworkId - Social network ID.
+   * @param url - New URL.
+   * @throws UserNotFoundException if company does not exist.
    */
   async updateSocialNetwork(
     userId: number,
@@ -302,11 +304,19 @@ export class CompanyService {
     if (!company) {
       throw new UserNotFoundException();
     }
-    /// NOTE : Should check if user own this social network
 
     await this.companyRepository.updateSocialNetwork(socialNetworkId, url);
   }
 
+  /**
+   * Adds a new legal document for the company.
+   *
+   * @param userId - Company user ID.
+   * @param type - Document type.
+   * @param file - File to upload.
+   * @throws UserNotFoundException if company does not exist.
+   * @throws LegalDocumentAlreadyExists if a document of this type already exists.
+   */
   async addLegalDocument(
     userId: number,
     type: LegalDocumentType,
@@ -335,15 +345,12 @@ export class CompanyService {
   }
 
   /**
-   * Retrieves the status of a legal document for a specific company based on the document type.
+   * Gets the legal document status of a company for a given type.
    *
-   * @param userId - The ID of the company whose legal document status is being retrieved.
-   * @param type - The type of the legal document whose status is being checked (e.g., contract, agreement, etc.).
-   *
-   * @returns The status of the legal document. If no document exists for the given type,
-   *          the status will be `LegalDocumentStatus.missing`.
-   *
-   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
+   * @param userId - Company user ID.
+   * @param type - Document type.
+   * @returns LegalDocumentStatus.
+   * @throws UserNotFoundException if company does not exist.
    */
   async getLegalDocumentStatus(
     userId: number,
@@ -367,14 +374,11 @@ export class CompanyService {
   }
 
   /**
-   * Deletes a legal document of a specific company based on the document ID and type.
+   * Deletes a legal document by type.
    *
-   * @param userId - The ID of the user (company) whose legal document is to be deleted.
-   * @param type - The type of the legal document to be deleted (e.g., contract, agreement, etc.).
-   *
-   * @returns A promise that resolves when the document is deleted.
-   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
-   * @throws {LegalDocumentNotFoundException} If no document with the specified `type` exists for the company.
+   * @param userId - Company user ID.
+   * @param type - Document type.
+   * @throws UserNotFoundException if company does not exist.
    */
   async deleteLegalDocument(
     userId: number,
@@ -391,7 +395,6 @@ export class CompanyService {
     );
 
     if (!document) {
-      // Exception missing.
       return;
     }
     await this.minioService.removeFile(BucketType.legal, document.document);
@@ -399,22 +402,18 @@ export class CompanyService {
   }
 
   /**
-   * Creates a SetupIntent for a specific company to allow them to save a payment method.
+   * Creates a Stripe SetupIntent for saving payment methods.
    *
-   * @param userId - The ID of the company for which the SetupIntent is to be created.
-   *
-   * @returns A promise that resolves with the created SetupIntent.
-   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
+   * @param userId - Company user ID.
+   * @returns Stripe SetupIntent.
+   * @throws UserNotFoundException if company does not exist.
    */
   async createSetupIntent(userId: number): Promise<Stripe.SetupIntent> {
-    // Fetch the company by userId to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
-      // If the company does not exist, throw an error
       throw new UserNotFoundException();
     }
 
-    // Create a SetupIntent with the Stripe customer ID to allow payment method saving
     const setupIntent = await this.stripeService.createSetupIntent(
       user.stripeCustomerId,
     );
@@ -423,11 +422,11 @@ export class CompanyService {
   }
 
   /**
-   * Retrieves the company entity associated with a given user.
+   * Retrieves the company entity.
    *
-   * @param {string} userId - The unique identifier of the user.
-   * @returns {Promise<CompanyEntity>} - The company entity linked to the user.
-   * @throws {UserNotFoundException} - Thrown if no user is found with the given ID.
+   * @param userId - Company user ID.
+   * @returns CompanyEntity.
+   * @throws UserNotFoundException if company does not exist.
    */
   async getCompany(userId: number): Promise<CompanyEntity> {
     const user = await this.companyRepository.getCompany(userId);
@@ -439,23 +438,18 @@ export class CompanyService {
   }
 
   /**
-   * Creates an Ephemeral Key for a specific company to authorize temporary access to Stripe Customer resources from the mobile frontend.
+   * Creates a Stripe Ephemeral Key.
    *
-   * @param userId - The ID of the company for which the Ephemeral Key is to be created.
-   *
-   * @returns A promise that resolves with the secret of the created Ephemeral Key.
-   * @throws {UserNotFoundException} If the company with the given `userId` is not found.
-   * @throws {StripeError} If the Ephemeral Key creation fails.
+   * @param userId - Company user ID.
+   * @returns Stripe EphemeralKey.
+   * @throws UserNotFoundException if company does not exist.
    */
   async createEphemeralKey(userId: number): Promise<Stripe.EphemeralKey> {
-    // Fetch the company to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
-      // If the company does not exist, throw an error
       throw new UserNotFoundException();
     }
 
-    // Create an Ephemeral Key for the specified Stripe customer
     const ephemeralKey = await this.stripeService.createEphemeralKey(
       user.stripeCustomerId,
     );
@@ -463,6 +457,13 @@ export class CompanyService {
     return ephemeralKey;
   }
 
+  /**
+   * Checks if the company has completed required legal documents.
+   *
+   * @param userId - Company user ID.
+   * @returns true if completed, false otherwise.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async hasCompletedDocuments(userId: number): Promise<boolean> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
@@ -476,6 +477,13 @@ export class CompanyService {
     return completed;
   }
 
+  /**
+   * Checks if the company has completed Stripe setup (payment method).
+   *
+   * @param userId - Company user ID.
+   * @returns true if completed, false otherwise.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async hasCompletedStripe(userId: number): Promise<boolean> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
@@ -488,15 +496,19 @@ export class CompanyService {
     return completed;
   }
 
+  /**
+   * Creates a Stripe Billing Portal session URL.
+   *
+   * @param userId - Company user ID.
+   * @returns URL string.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async createBillingPortalSession(userId: number): Promise<string> {
-    // Fetch the company to retrieve the Stripe customer ID
     const user = await this.companyRepository.getCompany(userId);
     if (!user) {
-      // If the company does not exist, throw an error
       throw new UserNotFoundException();
     }
 
-    // Create an Ephemeral Key for the specified Stripe customer
     const url = await this.stripeService.createBillingPortalSession(
       user.stripeCustomerId,
     );
@@ -504,13 +516,20 @@ export class CompanyService {
     return url;
   }
 
+  /**
+   * Checks if the company has a linked Instagram account.
+   *
+   * @param userId - Company user ID.
+   * @returns true if linked, false otherwise.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async hasCompletedInstagram(userId: number): Promise<any> {
     const company = await this.companyRepository.getCompany(userId);
     if (!company) {
       throw new UserNotFoundException();
     }
 
-    let oauth = await this.facebookRepository.getInstagramAccount(userId);
+    const oauth = await this.facebookRepository.getInstagramAccount(userId);
 
     if (!oauth) {
       return false;
@@ -518,6 +537,13 @@ export class CompanyService {
     return true;
   }
 
+  /**
+   * Retrieves the company profile completion status.
+   *
+   * @param userId - Company user ID.
+   * @returns CompanyProfileCompletionStatusEntity.
+   * @throws UserNotFoundException if company does not exist.
+   */
   async getProfileCompletionStatus(
     userId: number,
   ): Promise<CompanyProfileCompletionStatusEntity> {
@@ -547,6 +573,12 @@ export class CompanyService {
     return profileCompletionStatus;
   }
 
+  /**
+   * Checks if the company profile is fully completed.
+   *
+   * @param userId - Company user ID.
+   * @returns true if all required fields and verifications are present.
+   */
   async hasCompletedProfile(userId: number): Promise<boolean> {
     const profileCompletionStatus =
       await this.getProfileCompletionStatus(userId);
@@ -564,18 +596,30 @@ export class CompanyService {
     );
   }
 
+  /**
+   * Searches influencers by theme.
+   *
+   * @param theme - Theme string or null.
+   * @returns List of influencer summaries.
+   */
   async searchInfluencersByTheme(
     theme: string | null,
   ): Promise<InfluencerSummary[]> {
-    let influencers =
+    const influencers =
       await this.influencerRepository.searchInfluencersByTheme(theme);
     return influencers;
   }
 
+  /**
+   * Searches influencers by multiple filters.
+   *
+   * @param filters - Filter DTO including themes, departments, ages, etc.
+   * @returns List of influencer summaries.
+   */
   async searchInfluencersByFilters(
     filters: SearchInfluencersByFiltersDto,
   ): Promise<InfluencerSummary[]> {
-    let influencers =
+    const influencers =
       await this.influencerRepository.searchInfluencersByFilters(
         filters.themes,
         filters.departments,
