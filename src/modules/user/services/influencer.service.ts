@@ -230,7 +230,6 @@ export class InfluencerService {
       throw new UserNotFoundException();
     }
 
-    console.log(vatNumber);
     await this.stripeService.setConnectedVat(user.stripeAccountId, vatNumber);
     await this.influencerRepository.updateVATNumber(userId, vatNumber);
   }
@@ -650,7 +649,7 @@ export class InfluencerService {
       profileCompletionStatus.hasDescription &&
       profileCompletionStatus.hasDepartment &&
       profileCompletionStatus.hasSocialNetworks &&
-      profileCompletionStatus.hasLegalDocuments &&
+      // profileCompletionStatus.hasLegalDocuments &&
       profileCompletionStatus.hasPortfolio &&
       profileCompletionStatus.hasThemes &&
       profileCompletionStatus.hasTargetAudience &&

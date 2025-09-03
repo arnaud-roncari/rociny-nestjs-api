@@ -588,7 +588,7 @@ export class CompanyService {
       profileCompletionStatus.hasDescription &&
       profileCompletionStatus.hasDepartment &&
       profileCompletionStatus.hasSocialNetworks &&
-      profileCompletionStatus.hasLegalDocuments &&
+      // profileCompletionStatus.hasLegalDocuments &&
       profileCompletionStatus.hasStripePaymentMethod &&
       profileCompletionStatus.hasInstagramAccount &&
       profileCompletionStatus.hasBillingAddress &&
