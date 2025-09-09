@@ -19,6 +19,15 @@ export class MinioService implements OnModuleInit {
         secretKey: process.env.MINIO_ROOT_PASSWORD,
       });
     }
+
+    for (const bucket of Object.values(BucketType)) {
+      const exists = await MinioService.minioClient
+        .bucketExists(bucket)
+        .catch(() => false);
+      if (!exists) {
+        await MinioService.minioClient.makeBucket(bucket, 'us-east-1');
+      }
+    }
   }
 
   /**
