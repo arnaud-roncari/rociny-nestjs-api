@@ -424,6 +424,7 @@ export class CollaborationRepository {
     WHERE col.influencer_id = (
       SELECT id FROM api.influencers WHERE user_id = $1
     )
+      AND col.status = 'done'
   `;
     const rows = await this.postgresqlService.query(q, [influencerUserId]);
     return CollaboratedCompanyEntity.fromJsons(rows);
@@ -440,7 +441,7 @@ export class CollaborationRepository {
       i.profile_picture,
       i.portfolio,
       insta.followers_count,
-      COALESCE(COUNT(DISTINCT col.id) FILTER (WHERE col.status = 'done'), 0) AS collaboration_amount,
+      COALESCE(COUNT(DISTINCT col.id), 0) AS collaboration_amount,
       COALESCE(AVG(r.stars), 0) AS average_stars
     FROM api.collaborations col
     JOIN api.influencers i ON col.influencer_id = i.id
@@ -449,6 +450,7 @@ export class CollaborationRepository {
     WHERE col.company_id = (
       SELECT id FROM api.companies WHERE user_id = $1
     )
+      AND col.status = 'done'
     GROUP BY i.id, i.user_id, i.name, i.profile_picture, i.portfolio, insta.followers_count
   `;
 
