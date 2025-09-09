@@ -82,6 +82,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_SCHEME=${MINIO_SCHEME}
       - MINIO_DEFAULT_BUCKETS=influencer-pictures,policies,portfolios,legal,company-pictures,invoices,collaborations
+      - MINIO_SERVER_OPTS=--console-address ":9001"
     volumes:
       - minio_data:/data
 
