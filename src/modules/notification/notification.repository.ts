@@ -100,7 +100,7 @@ export class NotificationRepository {
     );
 
     const query = `
-      INSERT INTO api.user_notification_preferences (user_id, type, status)
+      INSERT INTO api.user_notification_preferences (user_id, type, enabled)
       VALUES ${values.join(', ')}
       ON CONFLICT (user_id, type) DO NOTHING
     `;
