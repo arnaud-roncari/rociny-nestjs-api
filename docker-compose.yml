@@ -79,7 +79,6 @@ services:
     networks:
       - my-network
     environment:
-      - MINIO_SERVER_URL=https://minio.rociny.com/s3
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
