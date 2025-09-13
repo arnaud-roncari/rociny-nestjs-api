@@ -299,10 +299,13 @@ export class FacebookRepository {
         access_token: token,
       },
     });
-    const entity = GenderInsightEntity.fromBreakdowns(
-      response.data.data[0].total_value.breakdowns[0].results,
-    );
-    return entity;
+    const data = response.data?.data;
+    if (!data || data.length === 0 || !data[0].total_value) {
+      return GenderInsightEntity.empty();
+    }
+
+    const breakdowns = data[0].total_value.breakdowns?.[0]?.results ?? [];
+    return GenderInsightEntity.fromBreakdowns(breakdowns);
   }
 
   async getCityInsight(
@@ -321,10 +324,14 @@ export class FacebookRepository {
       },
     });
 
-    const entity = CityInsightEntity.fromBreakdowns(
-      response.data.data[0].total_value.breakdowns[0].results,
+    const data = response.data?.data;
+    if (!data?.length || !data[0]?.total_value?.breakdowns?.length) {
+      return new CityInsightEntity({ topCities: [] });
+    }
+
+    return CityInsightEntity.fromBreakdowns(
+      data[0].total_value.breakdowns[0].results,
     );
-    return entity;
   }
 
   async getAgeInsight(
@@ -343,10 +350,14 @@ export class FacebookRepository {
       },
     });
 
-    const entity = AgeInsightEntity.fromBreakdowns(
-      response.data.data[0].total_value.breakdowns[0].results,
+    const data = response.data?.data;
+    if (!data?.length || !data[0]?.total_value?.breakdowns?.length) {
+      return new AgeInsightEntity({ topAgeRanges: [] });
+    }
+
+    return AgeInsightEntity.fromBreakdowns(
+      data[0].total_value.breakdowns[0].results,
     );
-    return entity;
   }
 
   async getMediaInsight(

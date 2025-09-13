@@ -8,7 +8,7 @@ import { InfluencerEntity } from '../user/entities/influencer.entity';
 export class StripeService implements OnModuleInit {
   private static stripe: Stripe;
   private static taxRateId: string;
-  private static platformVATNumber: string = 'FR1111111111';
+  private static platformVATNumber: string = 'FR45930621503';
 
   /**
    * Initializes the Stripe client and ensures the platform tax rate exists.

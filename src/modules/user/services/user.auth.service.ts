@@ -812,6 +812,7 @@ export class UserAuthService {
     // Convert the code to a long-lived token
     const shortToken =
       await this.facebookRepository.exchangeCodeForShortLivedToken(code);
+
     const longToken =
       await this.facebookRepository.exchangeShortForLongLivedToken(shortToken);
 

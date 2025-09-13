@@ -31,4 +31,11 @@ export class GenderInsightEntity {
       genderFemalePercentage,
     });
   }
+
+  static empty(): GenderInsightEntity {
+    return new GenderInsightEntity({
+      genderMalePercentage: 1,
+      genderFemalePercentage: 1,
+    });
+  }
 }
