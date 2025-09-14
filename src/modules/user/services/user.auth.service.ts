@@ -217,7 +217,7 @@ export class UserAuthService {
     await this.notificationRepository.initializePreferences(createdUser.id);
 
     // Create related table
-    this.createRelatedTablesForUser(
+    await this.createRelatedTablesForUser(
       createdUser.accountType,
       createdUser.email,
       createdUser.id,
