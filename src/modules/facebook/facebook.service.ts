@@ -98,9 +98,11 @@ export class FacebookService {
     }
 
     // Update limited by 1 every 24 hours
+    // 14 days for development purposes
     if (
       instagram.updatedAt &&
-      Date.now() - new Date(instagram.updatedAt).getTime() < 24 * 60 * 60 * 1000
+      Date.now() - new Date(instagram.updatedAt).getTime() <
+        336 * 60 * 60 * 1000
     ) {
       return;
     }
