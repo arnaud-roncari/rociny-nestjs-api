@@ -562,12 +562,15 @@ export class CompanyService {
       hasDescription: !!company.description,
       hasDepartment: !!company.department,
       hasTradeName: !!company.tradeName,
+      hasSiret: !!company.siret,
       hasBillingAddress:
         !!company.city && !!company.street && !!company.postalCode,
       hasSocialNetworks: socialNetworks.length > 0,
       hasLegalDocuments: await this.hasCompletedDocuments(userId),
       hasStripePaymentMethod: await this.hasCompletedStripe(userId),
       hasInstagramAccount: await this.hasCompletedInstagram(userId),
+      hasRepresentative:
+        !!company.firstnameRepresentative && !!company.lastnameRepresentative,
     });
 
     return profileCompletionStatus;
@@ -592,6 +595,8 @@ export class CompanyService {
       profileCompletionStatus.hasStripePaymentMethod &&
       profileCompletionStatus.hasInstagramAccount &&
       profileCompletionStatus.hasBillingAddress &&
+      profileCompletionStatus.hasRepresentative &&
+      profileCompletionStatus.hasSiret &&
       profileCompletionStatus.hasTradeName
     );
   }
@@ -629,5 +634,47 @@ export class CompanyService {
         filters.engagement_rate_range,
       );
     return influencers;
+  }
+
+  /**
+   * Updates the representative's first and last name of the company.
+   * Also syncs name with Stripe.
+   *
+   * @param userId - Company user ID.
+   * @param firstname - Representative first name.
+   * @param lastname - Representative last name.
+   * @throws UserNotFoundException if company does not exist.
+   */
+  async updateRepresentative(
+    userId: number,
+    firstname: string,
+    lastname: string,
+  ): Promise<void> {
+    const user = await this.companyRepository.getCompany(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.companyRepository.updateRepresentative(
+      userId,
+      firstname,
+      lastname,
+    );
+  }
+
+  /**
+   * Updates the company's SIRET number.
+   *
+   * @param userId - Company user ID.
+   * @param siret - Company SIRET number.
+   * @throws UserNotFoundException if company does not exist.
+   */
+  async updateSiret(userId: number, siret: string): Promise<void> {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) {
+      throw new UserNotFoundException();
+    }
+
+    await this.companyRepository.updateSiret(userId, siret);
   }
 }

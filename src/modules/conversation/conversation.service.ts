@@ -92,11 +92,12 @@ export class ConversationService {
     conversationId: number,
     currentSenderType: 'influencer' | 'company',
   ): Promise<void> {
-    const conversation =
-      await this.conversationRepository.markConversationMessagesAsRead(
-        conversationId,
-        currentSenderType,
-      );
+    await this.conversationRepository.markConversationMessagesAsRead(
+      conversationId,
+      currentSenderType,
+    );
+
+    const conversation = await this.getConversationById(conversationId);
 
     const influencer = await this.influencerRepository.getInfluencerById(
       conversation.influencerId,

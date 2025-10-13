@@ -311,7 +311,21 @@ export class UserAuthController {
   @ApiOperation({ summary: 'Delete a registered device' })
   @UseGuards(AuthGuard)
   @Delete('devices')
-  async deleteDevice(@Body() dto: DeleteDeviceDto): Promise<void> {
-    await this.notificationService.deleteDevice(dto.onesignal_id);
+  async removeDevice(
+    @IdFromJWT() userId: number,
+    @Body() dto: DeleteDeviceDto,
+  ): Promise<void> {
+    await this.notificationService.removeDevice(userId, dto.onesignal_id);
+  }
+
+  /**
+   * Retrieves the email of the logged-in user.
+   */
+  @ApiOperation({ summary: 'Get current user email' })
+  @UseGuards(AuthGuard)
+  @Get('email')
+  async getEmail(@IdFromJWT() userId: number): Promise<{ email: string }> {
+    const email = await this.authService.getEmail(userId);
+    return { email };
   }
 }

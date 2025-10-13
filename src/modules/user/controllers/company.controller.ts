@@ -62,6 +62,8 @@ import { AddMessageDto } from 'src/modules/conversation/dtos/add-message.dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user_notification_preference.dto';
 import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
+import { UpdateRepresentativeDto } from '../dtos/update_representative.dto';
+import { UpdateSiretDto } from '../dtos/update-siret.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -131,6 +133,15 @@ export class CompanyController {
     await this.companyService.updateTradeName(userId, body.trade_name);
   }
 
+  @UseGuards(AuthGuard)
+  @Put('siret')
+  async updateSiret(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateSiretDto,
+  ): Promise<void> {
+    await this.companyService.updateSiret(userId, body.siret);
+  }
+
   /**
    * Update VAT number.
    */
@@ -159,6 +170,23 @@ export class CompanyController {
       body.city,
       body.street,
       body.postal_code,
+    );
+  }
+
+  /**
+   * Update company representative.
+   */
+  @ApiOperation({ summary: 'Update company representative' })
+  @UseGuards(AuthGuard)
+  @Put('representative')
+  async updateRepresentative(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateRepresentativeDto,
+  ): Promise<void> {
+    await this.companyService.updateRepresentative(
+      userId,
+      body.firstname_representative,
+      body.lastname_representative,
     );
   }
 
@@ -601,6 +629,15 @@ export class CompanyController {
     @Param('id') collaborationId: number,
   ): Promise<StreamableFile> {
     const f = await this.collaborationService.getPlatformQuote(collaborationId);
+    return new StreamableFile(f);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/contract')
+  async getContract(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f = await this.collaborationService.getContract(collaborationId);
     return new StreamableFile(f);
   }
 

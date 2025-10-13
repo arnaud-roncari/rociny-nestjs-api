@@ -55,6 +55,7 @@ import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user
 import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
+import { UpdateSiretDto } from '../dtos/update-siret.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -726,6 +727,15 @@ export class InfluencerController {
     return new StreamableFile(f);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('collaborations/:id/contract')
+  async getContract(
+    @Param('id') collaborationId: number,
+  ): Promise<StreamableFile> {
+    const f = await this.collaborationService.getContract(collaborationId);
+    return new StreamableFile(f);
+  }
+
   /** Get influencer invoice */
   @UseGuards(AuthGuard)
   @Get('collaborations/:id/influencer-invoice')
@@ -761,5 +771,14 @@ export class InfluencerController {
   async getCollaboration(@Param('id') id: number): Promise<CollaborationDto> {
     const collab = await this.collaborationService.getCollaboration(id);
     return CollaborationDto.fromEntity(collab);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('siret')
+  async updateSiret(
+    @IdFromJWT() userId: number,
+    @Body() body: UpdateSiretDto,
+  ): Promise<void> {
+    await this.influencerService.updateSiret(userId, body.siret);
   }
 }

@@ -12,6 +12,7 @@ CREATE TABLE api.influencers (
     --
     stripe_account_id TEXT NOT NULL,
     vat_number TEXT,
+    siret TEXT,
     --
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

@@ -10,10 +10,14 @@ CREATE TABLE api.companies (
     trade_name TEXT,
     vat_number TEXT,
     city TEXT,
+    siret TEXT,
     street TEXT,
     postal_code TEXT,
     --
     stripe_customer_id TEXT NOT NULL,
+    --
+    firstname_representative TEXT,
+    lastname_representative TEXT,
     --
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

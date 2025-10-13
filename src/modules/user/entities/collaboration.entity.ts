@@ -11,6 +11,7 @@ export interface CollaborationEntityParams {
   influencerQuote?: string | null;
   platformInvoice?: string | null;
   influencerInvoice?: string | null;
+  contract?: string | null;
   createdAt: Date;
   productPlacements: ProductPlacementEntity[];
 }
@@ -26,6 +27,7 @@ export class CollaborationEntity {
   influencerInvoice?: string | null;
   platformQuote?: string | null;
   influencerQuote?: string | null;
+  contract?: string | null;
   createdAt: Date;
   productPlacements: ProductPlacementEntity[];
 
@@ -45,6 +47,7 @@ export class CollaborationEntity {
       influencerInvoice: json.influencer_invoice ?? null,
       platformQuote: json.platform_quote ?? null,
       influencerQuote: json.influencer_quote ?? null,
+      contract: json.contract ?? null,
       createdAt: new Date(json.created_at),
       productPlacements: ProductPlacementEntity.fromJsons(
         json.product_placements ?? [],

@@ -5,7 +5,6 @@ import { UserNotFoundException } from 'src/commons/errors/user-not-found';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { BucketType } from 'src/commons/enums/bucket_type';
 import internal from 'stream';
-import { FileNotFoundException } from 'src/commons/errors/file-not-found';
 import { PlatformType } from 'src/commons/enums/platform_type';
 import { SocialNetworkEntity } from '../entities/social_network.entity';
 import { SocialNetworkExists } from 'src/commons/errors/social-network-already-exist';
@@ -620,6 +619,7 @@ export class InfluencerService {
         hasName: !!influencer.name,
         hasDescription: !!influencer.description,
         hasDepartment: !!influencer.department,
+        hasSiret: !!influencer.siret,
         hasSocialNetworks: socialNetworks.length > 0,
         hasThemes: influencer.themes.length > 0,
         hasTargetAudience: influencer.targetAudience.length > 0,
@@ -676,5 +676,14 @@ export class InfluencerService {
   async getStatistics(userId: number): Promise<InfluencerStatisticsEntity> {
     const s = await this.influencerRepository.getStatistics(userId);
     return s;
+  }
+
+  async updateSiret(userId: number, siret: string): Promise<void> {
+    const influencer = await this.influencerRepository.getInfluencer(userId);
+    if (!influencer) {
+      throw new UserNotFoundException();
+    }
+
+    await this.influencerRepository.updateSiret(userId, siret);
   }
 }

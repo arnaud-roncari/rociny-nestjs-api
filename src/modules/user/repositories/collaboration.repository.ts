@@ -518,4 +518,19 @@ export class CollaborationRepository {
     const rows = await this.postgresqlService.query(query, [influencerUserId]);
     return CollaborationSummaryEntity.fromJsons(rows);
   }
+
+  /**
+   * Updates the contract field (PDF URL or Base64 string) of a collaboration.
+   *
+   * @param id - The ID of the collaboration.
+   * @param contract - The contract URL or content (PDF file path or Base64).
+   */
+  async setContract(id: number, contract: string): Promise<void> {
+    const query = `
+      UPDATE api.collaborations
+      SET contract = $1
+      WHERE id = $2
+    `;
+    await this.postgresqlService.query(query, [contract, id]);
+  }
 }

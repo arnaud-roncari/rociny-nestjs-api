@@ -14,6 +14,9 @@ export class CompanyDto {
   readonly street: string | null;
   readonly postal_code: string | null;
   readonly vat_number: string | null;
+  readonly siret: string | null;
+  readonly firstname_representative: string | null;
+  readonly lastname_representative: string | null;
   readonly created_at: Date;
   readonly stripe_customer_id: string;
 
@@ -40,8 +43,11 @@ export class CompanyDto {
       trade_name: company.tradeName,
       postal_code: company.postalCode,
       vat_number: company.vatNumber,
+      siret: company.siret,
       department: company.department,
       description: company.description,
+      firstname_representative: company.firstnameRepresentative,
+      lastname_representative: company.lastnameRepresentative,
       created_at: company.createdAt,
       stripe_customer_id: company.stripeCustomerId,
       collaboration_amount: company.collaborationAmount,

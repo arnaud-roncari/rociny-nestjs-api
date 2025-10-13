@@ -12,6 +12,7 @@ export class InfluencerProfileCompletionStatusDto {
   readonly has_target_audience: boolean;
   readonly has_stripe_completed: boolean;
   readonly has_instagram_account: boolean;
+  readonly has_siret: boolean;
 
   constructor(parameters: InfluencerProfileCompletionStatusDto) {
     Object.assign(this, parameters);
@@ -25,6 +26,7 @@ export class InfluencerProfileCompletionStatusDto {
       has_portfolio: entity.hasPortfolio,
       has_name: entity.hasName,
       has_description: entity.hasDescription,
+      has_siret: entity.hasSiret,
       has_department: entity.hasDepartment,
       has_social_networks: entity.hasSocialNetworks,
       has_legal_documents: entity.hasLegalDocuments,

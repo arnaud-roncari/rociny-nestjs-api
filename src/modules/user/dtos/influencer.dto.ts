@@ -14,6 +14,7 @@ export class InfluencerDto {
   readonly target_audience: string[];
   readonly created_at: Date;
   readonly vat_number: string | null;
+  readonly siret: string | null;
   readonly social_networks: SocialNetworkDto[];
   readonly collaboration_amount: number;
   readonly average_stars: number;
@@ -30,6 +31,7 @@ export class InfluencerDto {
       id: influencer.id,
       user_id: influencer.userId,
       vat_number: influencer.vatNumber,
+      siret: influencer.siret,
       profile_picture: influencer.profilePicture,
       portfolio: influencer.portfolio,
       name: influencer.name,

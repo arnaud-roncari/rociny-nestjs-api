@@ -639,4 +639,13 @@ export class InfluencerRepository {
     const result = await this.postgresqlService.query(query, [userId]);
     return InfluencerStatisticsEntity.fromJson(result[0]);
   }
+
+  async updateSiret(userId: number, siret: string): Promise<void> {
+    const query = `
+    UPDATE api.influencers
+    SET siret = $1
+    WHERE user_id = $2
+  `;
+    await this.postgresqlService.query(query, [siret, userId]);
+  }
 }

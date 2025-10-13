@@ -11,6 +11,9 @@ export class CompanyEntity {
   street: string;
   postalCode: string;
   vatNumber: string;
+  siret: string | null;
+  firstnameRepresentative: string | null;
+  lastnameRepresentative: string | null;
   createdAt: Date;
 
   collaborationAmount: number;
@@ -21,9 +24,7 @@ export class CompanyEntity {
   }
 
   static fromJson(json: any): CompanyEntity | null {
-    if (!json) {
-      return null;
-    }
+    if (!json) return null;
 
     return new CompanyEntity({
       id: json.id,
@@ -35,8 +36,11 @@ export class CompanyEntity {
       street: json.street,
       postalCode: json.postal_code,
       vatNumber: json.vat_number,
+      siret: json.siret,
       department: json.department,
       description: json.description,
+      firstnameRepresentative: json.firstname_representative,
+      lastnameRepresentative: json.lastname_representative,
       stripeCustomerId: json.stripe_customer_id,
       createdAt: json.created_at ? new Date(json.created_at) : new Date(),
       collaborationAmount: json.collaboration_amount ?? 0,
@@ -48,10 +52,7 @@ export class CompanyEntity {
   }
 
   static fromJsons(jsons: any[]): CompanyEntity[] {
-    if (!jsons) {
-      return [];
-    }
-
+    if (!jsons) return [];
     return jsons
       .map((json) => CompanyEntity.fromJson(json))
       .filter((entity): entity is CompanyEntity => entity !== null);

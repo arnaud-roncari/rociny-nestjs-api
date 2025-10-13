@@ -22,6 +22,7 @@ import { ConversationService } from '../conversation/conversation.service';
 import { ConversationGateway } from '../conversation/conversation.gateway';
 import { NotificationRepository } from '../notification/notification.repository';
 import { NotificationService } from '../notification/notification.service';
+import { PDFKitService } from './services/pdfkit.service';
 
 @Module({
   providers: [
@@ -46,6 +47,7 @@ import { NotificationService } from '../notification/notification.service';
     ConversationGateway,
     NotificationRepository,
     NotificationService,
+    PDFKitService,
   ],
   controllers: [UserAuthController, InfluencerController, CompanyController],
 })

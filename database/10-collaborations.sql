@@ -9,5 +9,6 @@ CREATE TABLE api.collaborations (
     influencer_quote TEXT,
     platform_invoice TEXT,
     influencer_invoice TEXT,
+    contract TEXT,
     created_at TIMESTAMPTZ DEFAULT current_timestamp
 );

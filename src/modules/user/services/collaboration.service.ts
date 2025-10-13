@@ -20,6 +20,8 @@ import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { ConversationService } from 'src/modules/conversation/conversation.service';
 import { NotificationType } from 'src/modules/notification/constant';
 import { NotificationService } from 'src/modules/notification/notification.service';
+import { FacebookService } from 'src/modules/facebook/facebook.service';
+import { PDFKitService } from './pdfkit.service';
 
 @Injectable()
 export class CollaborationService {
@@ -31,6 +33,8 @@ export class CollaborationService {
     private readonly companyRepository: CompanyRepository,
     private readonly conversationService: ConversationService,
     private readonly notificationService: NotificationService,
+    private readonly facebookService: FacebookService,
+    private readonly PDFKitService: PDFKitService,
   ) {}
 
   /**
@@ -594,15 +598,66 @@ export class CollaborationService {
     return file;
   }
 
+  async getContract(collaborationId: number): Promise<internal.Readable> {
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const file = await this.minioService.getFile(
+      BucketType.collaborations,
+      c.contract,
+    );
+    return file;
+  }
+
+  /**
+   * Accepts a collaboration request from an influencer.
+   *
+   * This method:
+   * 1. Retrieves all necessary data (company, influencer, Instagram account).
+   * 2. Generates a legal PDF contract using PDFKit.
+   * 3. Uploads the generated PDF to MinIO (object storage).
+   * 4. Stores the contract URL in the database.
+   * 5. Updates the collaboration status to "waiting_for_company_payment".
+   * 6. Sends a notification to the company.
+   *
+   * @param collaborationId - The ID of the collaboration being accepted.
+   */
   async acceptCollaboration(collaborationId: number): Promise<void> {
+    // 1. Retrieve the collaboration details
+    const c = await this.collaborationRepository.findById(collaborationId);
+    const company = await this.companyRepository.getCompanyById(c.companyId);
+
+    // 2. Retrieve the influencer and their Instagram account
+    const influencer = await this.influencerRepository.getInfluencerById(
+      c.influencerId,
+    );
+
+    const influencerInstagramAccount =
+      await this.facebookService.getInstagramAccount(influencer.userId);
+
+    // 3. Generate the collaboration contract as a PDF file
+    const pdfBuffer = await this.PDFKitService.generateContract(
+      company,
+      influencer,
+      c,
+      influencerInstagramAccount,
+    );
+
+    // 4. Upload the generated PDF to MinIO storage
+    const contract = await this.minioService.uploadBuffer(
+      pdfBuffer,
+      `contract_${c.id}.pdf`,
+      BucketType.collaborations,
+    );
+
+    // 5. Save the contract URL in the database
+    await this.collaborationRepository.setContract(c.id, contract);
+
+    // 6. Update collaboration status to indicate payment is pending
     await this.collaborationRepository.updateCollaborationStatus(
       collaborationId,
       'waiting_for_company_payment',
     );
 
-    const c = await this.collaborationRepository.findById(collaborationId);
-    const company = await this.companyRepository.getCompanyById(c.companyId);
-
+    // 7. Notify the company that the collaboration is awaiting payment
     await this.notificationService.send(
       company.userId,
       NotificationType.collaboration_waiting_for_company_payment,

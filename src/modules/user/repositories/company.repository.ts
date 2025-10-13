@@ -368,4 +368,37 @@ export class CompanyRepository {
 
     return count === requiredTypes.length;
   }
+
+  /**
+   * Update the representative's first and last name of a company.
+   * @param userId - The user's id.
+   * @param firstnameRepresentative - The new first name of the representative.
+   * @param lastnameRepresentative - The new last name of the representative.
+   */
+  async updateRepresentative(
+    userId: number,
+    firstnameRepresentative: string,
+    lastnameRepresentative: string,
+  ): Promise<void> {
+    const query = `
+      UPDATE api.companies
+      SET firstname_representative = $1,
+          lastname_representative = $2
+      WHERE user_id = $3
+    `;
+    await this.postgresqlService.query(query, [
+      firstnameRepresentative,
+      lastnameRepresentative,
+      userId,
+    ]);
+  }
+
+  async updateSiret(userId: number, siret: string): Promise<void> {
+    const query = `
+    UPDATE api.companies
+    SET siret = $1
+    WHERE user_id = $2
+  `;
+    await this.postgresqlService.query(query, [siret, userId]);
+  }
 }

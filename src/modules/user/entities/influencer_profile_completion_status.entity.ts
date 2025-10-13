@@ -10,6 +10,7 @@ export class InfluencerProfileCompletionStatusEntity {
   hasTargetAudience: boolean;
   hasStripeCompleted: boolean;
   hasInstagramAccount: boolean;
+  hasSiret: boolean;
 
   constructor(parameters: InfluencerProfileCompletionStatusEntity) {
     Object.assign(this, parameters);

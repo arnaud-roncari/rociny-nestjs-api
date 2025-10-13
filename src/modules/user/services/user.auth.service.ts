@@ -850,4 +850,20 @@ export class UserAuthService {
       );
     }
   }
+
+  /**
+   * Retrieves a user's email by their ID.
+   *
+   * @param userId - The unique identifier of the user.
+   * @returns The user's email address.
+   * @throws UserNotFoundException - If no user exists with the provided ID.
+   */
+  async getEmail(userId: number): Promise<string> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    return user.email;
+  }
 }

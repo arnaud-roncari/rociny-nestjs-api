@@ -19,6 +19,7 @@ export class NotificationService {
       userId,
       onesignalId,
     );
+
     if (!exists) {
       await this.notificationRepository.addDevice(userId, onesignalId);
     }
@@ -34,8 +35,10 @@ export class NotificationService {
   /**
    * Delete a device by its OneSignal ID.
    */
-  async deleteDevice(onesignalId: string): Promise<void> {
-    await this.notificationRepository.deleteDeviceByOneSignalId(onesignalId);
+  async removeDevice(userId: number, onesignalId: string): Promise<void> {
+    await this.notificationRepository.removeDevice(userId, onesignalId);
+
+    ///Aeae
   }
 
   /**

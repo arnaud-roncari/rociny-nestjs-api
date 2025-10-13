@@ -121,59 +121,19 @@ export class ConversationRepository {
   async markConversationMessagesAsRead(
     conversationId: number,
     currentSenderType: 'influencer' | 'company',
-  ): Promise<ConversationSummaryEntity | null> {
-    // 1. Update all unread messages from the opposite sender
-    const query = `
+  ): Promise<void> {
+    // Mark all unread messages from the opposite sender as read
+    const updateQuery = `
     UPDATE api.messages
     SET is_read = TRUE
     WHERE conversation_id = $1
       AND sender_type != $2
       AND is_read = FALSE
   `;
-    await this.postgresqlService.query(query, [
+    await this.postgresqlService.query(updateQuery, [
       conversationId,
       currentSenderType,
     ]);
-
-    // 2. Fetch and return the updated conversation
-    const convQuery = `
-    SELECT
-      conv.id,
-      conv.influencer_id,
-      conv.company_id,
-      conv.created_at,
-      conv.updated_at,
-      (
-        SELECT m.content
-        FROM api.messages m
-        WHERE m.conversation_id = conv.id
-        ORDER BY m.created_at DESC
-        LIMIT 1
-      ) AS last_message,
-      (
-        SELECT COUNT(*)
-        FROM api.messages m
-        WHERE m.conversation_id = conv.id
-          AND m.is_read = false
-      ) AS unread_count,
-      i.name AS influencer_name,
-      i.profile_picture AS influencer_profile_picture,
-      c.name AS company_name,
-      c.profile_picture AS company_profile_picture
-    FROM api.conversations conv
-    JOIN api.influencers i ON i.id = conv.influencer_id
-    JOIN api.companies c ON c.id = conv.company_id
-    WHERE conv.id = $1
-    LIMIT 1
-  `;
-
-    const rows = await this.postgresqlService.query(convQuery, [
-      conversationId,
-    ]);
-    if (!rows || rows.length === 0) {
-      return null;
-    }
-    return ConversationSummaryEntity.fromJson(rows[0]);
   }
 
   async addMessage(

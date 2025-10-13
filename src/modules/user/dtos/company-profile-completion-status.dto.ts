@@ -11,6 +11,8 @@ export class CompanyProfileCompletionStatusDto {
   readonly has_instagram_account: boolean;
   readonly has_trade_name: boolean;
   readonly has_billing_address: boolean;
+  readonly has_representative: boolean;
+  readonly has_siret: boolean;
 
   constructor(parameters: CompanyProfileCompletionStatusDto) {
     Object.assign(this, parameters);
@@ -29,6 +31,8 @@ export class CompanyProfileCompletionStatusDto {
       has_instagram_account: entity.hasInstagramAccount,
       has_billing_address: entity.hasBillingAddress,
       has_trade_name: entity.hasTradeName,
+      has_representative: entity.hasRepresentative,
+      has_siret: entity.hasSiret,
     });
   }
 }

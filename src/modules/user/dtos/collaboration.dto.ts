@@ -40,9 +40,9 @@ export class CollaborationDto {
   files: string[];
   platform_invoice?: string | null;
   influencer_invoice?: string | null;
-
   platform_quote?: string | null;
   influencer_quote?: string | null;
+  contract?: string | null;
   created_at: Date;
 
   @Type(() => ProductPlacementDto)
@@ -64,6 +64,7 @@ export class CollaborationDto {
       influencer_invoice: entity.influencerInvoice ?? null,
       platform_quote: entity.platformQuote ?? null,
       influencer_quote: entity.influencerQuote ?? null,
+      contract: entity.contract ?? null,
       created_at: entity.createdAt,
       product_placements: ProductPlacementDto.fromEntities(
         entity.productPlacements,

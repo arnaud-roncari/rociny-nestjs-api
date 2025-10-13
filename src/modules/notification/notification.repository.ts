@@ -51,11 +51,18 @@ export class NotificationRepository {
     await this.postgresqlService.query(query, [onesignalId]);
   }
 
+  async removeDevice(userId: number, onesignalId: string): Promise<void> {
+    const query = `
+    DELETE FROM api.user_devices
+    WHERE user_id = $1 AND onesignal_id = $2
+  `;
+    await this.postgresqlService.query(query, [userId, onesignalId]);
+  }
+
   async addDevice(userId: number, onesignalId: string): Promise<void> {
     const query = `
     INSERT INTO api.user_devices (user_id, onesignal_id)
     VALUES ($1, $2)
-    ON CONFLICT (onesignal_id) DO NOTHING
   `;
     await this.postgresqlService.query(query, [userId, onesignalId]);
   }
