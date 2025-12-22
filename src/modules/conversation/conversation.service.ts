@@ -1,0 +1,164 @@
+import { Injectable } from '@nestjs/common';
+import { ConversationRepository } from './conversation.repository';
+import { ConversationSummaryEntity } from './entities/conversation.entity';
+import { MessageEntity } from './entities/message.entity';
+import { ConversationGateway } from './conversation.gateway';
+import { CompanyRepository } from '../user/repositories/company.repository';
+import { InfluencerRepository } from '../user/repositories/influencer.repository';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/constant';
+
+@Injectable()
+export class ConversationService {
+  constructor(
+    private readonly conversationRepository: ConversationRepository,
+    private readonly conversationGateway: ConversationGateway,
+    private readonly companyRepository: CompanyRepository,
+    private readonly influencerRepository: InfluencerRepository,
+    private readonly notificationService: NotificationService,
+  ) {}
+
+  async createConversation(
+    influencerId: number,
+    companyId: number,
+    collaborationId: number,
+  ): Promise<void> {
+    const newConversation =
+      await this.conversationRepository.createConversation(
+        influencerId,
+        companyId,
+      );
+    await this.conversationRepository.addMessage(
+      newConversation.id,
+      'company',
+      companyId,
+      null,
+      collaborationId,
+    );
+
+    const conversation = await this.conversationRepository.getConversationById(
+      newConversation.id,
+    );
+
+    const influencer = await this.influencerRepository.getInfluencerById(
+      conversation.influencerId,
+    );
+    const company = await this.companyRepository.getCompanyById(
+      conversation.companyId,
+    );
+    this.conversationGateway.refreshConversation(
+      influencer.userId,
+      conversation,
+    );
+    this.conversationGateway.refreshConversation(company.userId, conversation);
+  }
+
+  async conversationExists(
+    influencerId: number,
+    companyId: number,
+  ): Promise<ConversationSummaryEntity | null> {
+    const r = await this.conversationRepository.conversationExists(
+      influencerId,
+      companyId,
+    );
+    return r;
+  }
+
+  async getConversations(id: number): Promise<ConversationSummaryEntity[]> {
+    const r =
+      await this.conversationRepository.getConversationsByParticipantId(id);
+    return r;
+  }
+
+  async getMessagesByConversationId(
+    conversationId: number,
+  ): Promise<MessageEntity[]> {
+    const r =
+      await this.conversationRepository.getMessagesByConversationId(
+        conversationId,
+      );
+    return r;
+  }
+
+  async getConversationById(
+    conversationId: number,
+  ): Promise<ConversationSummaryEntity> {
+    const r =
+      await this.conversationRepository.getConversationById(conversationId);
+    return r;
+  }
+
+  async markConversationMessagesAsRead(
+    conversationId: number,
+    currentSenderType: 'influencer' | 'company',
+  ): Promise<void> {
+    await this.conversationRepository.markConversationMessagesAsRead(
+      conversationId,
+      currentSenderType,
+    );
+
+    const conversation = await this.getConversationById(conversationId);
+
+    const influencer = await this.influencerRepository.getInfluencerById(
+      conversation.influencerId,
+    );
+    const company = await this.companyRepository.getCompanyById(
+      conversation.companyId,
+    );
+    this.conversationGateway.refreshConversation(
+      influencer.userId,
+      conversation,
+    );
+    this.conversationGateway.refreshConversation(company.userId, conversation);
+  }
+
+  async addMessage(
+    conversationId: number,
+    senderType: 'influencer' | 'company',
+    senderId: number,
+    content: string | null,
+    collaborationId?: number,
+  ): Promise<MessageEntity> {
+    const message = await this.conversationRepository.addMessage(
+      conversationId,
+      senderType,
+      senderId,
+      content,
+      collaborationId,
+    );
+
+    const conversation = await this.getConversationById(conversationId);
+
+    // Get both participants
+    const influencer = await this.influencerRepository.getInfluencerById(
+      conversation.influencerId,
+    );
+    const company = await this.companyRepository.getCompanyById(
+      conversation.companyId,
+    );
+
+    this.conversationGateway.addMessage(company.userId, message);
+    this.conversationGateway.addMessage(influencer.userId, message);
+
+    this.conversationGateway.refreshConversation(
+      influencer.userId,
+      conversation,
+    );
+    this.conversationGateway.refreshConversation(company.userId, conversation);
+
+    // Push notification
+    if (senderType === 'influencer') {
+      await this.notificationService.send(
+        company.userId,
+        NotificationType.new_message,
+      );
+    } else {
+      await this.notificationService.send(
+        influencer.userId,
+        NotificationType.new_message,
+      );
+    }
+
+    return message;
+  }
+}
