@@ -6,6 +6,7 @@ import { FetchedInstagramAccountEntity } from './entities/fetched_instagram_acco
 import { InstagramAccountEntity } from './entities/instagram_account.entity';
 import { InstagramNotFoundException } from 'src/commons/errors/instagram-not-found';
 import { InstagramAlreadyExists } from 'src/commons/errors/instagram-already-exist';
+import { FacebookPageStatsDto } from './dtos/facebook_page_stats.dto';
 
 @Injectable()
 export class FacebookService {
@@ -144,5 +145,57 @@ export class FacebookService {
       profilePictureUrl: profile.profilePictureUrl,
       viewsHistory: viewsHistory,
     });
+  }
+  
+  async getFacebookPageStats(userId: number): Promise<FacebookPageStatsDto[]> {
+    const oauthUser = await this.userRepository.getOAuthUserByUserId(
+      'facebook',
+      userId,
+    );
+
+    if (!oauthUser) {
+      throw new UserNotFoundException();
+    }
+
+    const pages = await this.facebookRepository.getFacebookPages(
+      oauthUser.accessToken,
+    );
+
+    const result: FacebookPageStatsDto[] = [];
+
+    for (const page of pages) {
+      const pageId = page.id;
+      const pageToken = page.access_token;
+
+      const info = await this.facebookRepository.getFacebookPageInfo(
+        pageId,
+        pageToken,
+      );
+
+      const insights =
+        await this.facebookRepository.getFacebookPageInsights(
+          pageId,
+          pageToken,
+        );
+
+      const impressions =
+        insights.find((i) => i.name === 'page_impressions')
+          ?.values?.[0]?.value ?? 0;
+
+      const engaged =
+        insights.find((i) => i.name === 'page_engaged_users')
+          ?.values?.[0]?.value ?? 0;
+
+      result.push({
+        id: info.id,
+        name: info.name,
+        fan_count: info.fan_count,
+        picture_url: info.picture?.data?.url,
+        impressions,
+        engaged_users: engaged,
+      });
+    }
+
+    return result;
   }
 }

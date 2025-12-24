@@ -56,6 +56,7 @@ import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dt
 import { BucketType } from 'src/commons/enums/bucket_type';
 import { MinioService } from 'src/modules/minio/minio.service';
 import { UpdateSiretDto } from '../dtos/update-siret.dto';
+import { FacebookPageStatsDto } from 'src/modules/facebook/dtos/facebook_page_stats.dto';
 
 @Controller('influencer')
 export class InfluencerController {
@@ -780,5 +781,15 @@ export class InfluencerController {
     @Body() body: UpdateSiretDto,
   ): Promise<void> {
     await this.influencerService.updateSiret(userId, body.siret);
+  }
+  
+  /** Get Facebook pages stats */
+  @ApiOperation({ summary: 'Get Facebook pages statistics' })
+  @UseGuards(AuthGuard)
+  @Get('social/facebook/pages/stats')
+  async getFacebookPagesStats(
+    @IdFromJWT() userId: number,
+  ): Promise<FacebookPageStatsDto[]> {
+    return await this.facebookService.getFacebookPageStats(userId);
   }
 }

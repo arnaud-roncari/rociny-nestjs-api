@@ -105,18 +105,32 @@ export class FacebookRepository {
 
     for (const page of pages) {
       const pageId = page.id;
+      const pageAccessToken = page.access_token;
 
       try {
         // Fetch the Instagram Business Account linked to the Facebook page
         const igRes = await axios.get(`https://graph.facebook.com/${pageId}`, {
           params: {
-            access_token: accessToken,
+            access_token: pageAccessToken,
             fields:
-              'instagram_business_account{name,username,profile_picture_url,followers_count}',
+              'connected_instagram_account',
           },
         });
+        const igId = igRes.data?.connected_instagram_account?.id;
+        if (!igId) continue;
 
-        const igAccount = igRes.data.instagram_business_account;
+        // 3. Récupérer les infos Instagram DIRECTEMENT
+        const igAccountResp = await axios.get(
+          `https://graph.facebook.com/v24.0/${igId}`,
+          {
+            params: {
+              fields: 'id,username,profile_picture_url,followers_count,name',
+              access_token: pageAccessToken,
+            },
+          },
+        );
+        
+        const igAccount = igAccountResp.data;
 
         if (igAccount) {
           instagramAccounts.push(
@@ -510,5 +524,51 @@ export class FacebookRepository {
     }
 
     return viewsHistory;
+  }
+
+
+  /**
+   * Get the Facebook data linked to the user.
+   * Facebook request part
+   */
+  async getFacebookPages(accessToken: string) {
+    const res = await axios.get('https://graph.facebook.com/v24.0/me/accounts', {
+      params: { access_token: accessToken },
+    });
+
+    return res.data.data || [];
+  }
+  async getFacebookPageInfo(
+    pageId: string,
+    pageAccessToken: string,
+  ) {
+    const res = await axios.get(
+      `https://graph.facebook.com/v24.0/${pageId}`,
+      {
+        params: {
+          fields: 'id,name,fan_count,picture',
+          access_token: pageAccessToken,
+        },
+      },
+    );
+
+    return res.data;
+  }
+  async getFacebookPageInsights(
+    pageId: string,
+    pageAccessToken: string,
+  ) {
+    const res = await axios.get(
+      `https://graph.facebook.com/v24.0/${pageId}/insights`,
+      {
+        params: {
+          metric: 'page_impressions,page_engaged_users',
+          period: 'day',
+          access_token: pageAccessToken,
+        },
+      },
+    );
+
+    return res.data.data || [];
   }
 }
