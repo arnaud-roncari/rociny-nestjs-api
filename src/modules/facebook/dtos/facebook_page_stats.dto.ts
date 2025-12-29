@@ -3,6 +3,8 @@ export class FacebookPageStatsDto {
   name: string;
   fan_count: number;
   picture_url: string;
-  impressions: number;
-  engaged_users: number;
+
+  posts_last_7_days: number;
+  avg_likes: number;
+  avg_comments: number;
 }

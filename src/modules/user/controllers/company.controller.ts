@@ -64,6 +64,7 @@ import { UserNotificationPreferenceDto } from 'src/modules/notification/dto/user
 import { UpdateUserNotificationPreferenceDto } from 'src/modules/notification/dto/update_user_notification_preference.dto';
 import { UpdateRepresentativeDto } from '../dtos/update_representative.dto';
 import { UpdateSiretDto } from '../dtos/update-siret.dto';
+import { FacebookPageStatsDto } from 'src/modules/facebook/dtos/facebook_page_stats.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -743,6 +744,16 @@ export class CompanyController {
       await this.facebookService.getInstagramAccount(userId);
     return InstagramAccountDto.fromEntity(instagramAccount);
   }
+  
+  /** Get Facebook pages stats */
+      @ApiOperation({ summary: 'Get Facebook pages statistics' })
+      @UseGuards(AuthGuard)
+      @Get('social/facebook/pages/stats')
+      async getFacebookPagesStats(
+        @IdFromJWT() userId: number,
+      ): Promise<FacebookPageStatsDto[]> {
+        return await this.facebookService.getFacebookPageStats(userId);
+      }
 
   /**
    * Link a fetched Instagram account to company.

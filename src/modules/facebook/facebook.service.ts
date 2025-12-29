@@ -172,27 +172,34 @@ export class FacebookService {
         pageToken,
       );
 
-      const insights =
-        await this.facebookRepository.getFacebookPageInsights(
-          pageId,
-          pageToken,
-        );
+      const posts = await this.facebookRepository.getFacebookPagePosts(
+        pageId,
+        pageToken,
+        5,
+      );
 
-      const impressions =
-        insights.find((i) => i.name === 'page_impressions')
-          ?.values?.[0]?.value ?? 0;
+      const postsCount = posts.length;
 
-      const engaged =
-        insights.find((i) => i.name === 'page_engaged_users')
-          ?.values?.[0]?.value ?? 0;
+      const avgLikes =
+        posts.reduce(
+          (sum, p) => sum + (p.likes?.summary?.total_count ?? 0),
+          0,
+        ) / (postsCount || 1);
+
+      const avgComments =
+        posts.reduce(
+          (sum, p) => sum + (p.comments?.summary?.total_count ?? 0),
+          0,
+        ) / (postsCount || 1);
 
       result.push({
         id: info.id,
         name: info.name,
         fan_count: info.fan_count,
         picture_url: info.picture?.data?.url,
-        impressions,
-        engaged_users: engaged,
+        posts_last_7_days: postsCount,
+        avg_likes: Math.round(avgLikes),
+        avg_comments: Math.round(avgComments),
       });
     }
 

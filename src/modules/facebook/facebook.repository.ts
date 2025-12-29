@@ -554,16 +554,18 @@ export class FacebookRepository {
 
     return res.data;
   }
-  async getFacebookPageInsights(
+  async getFacebookPagePosts(
     pageId: string,
     pageAccessToken: string,
+    limit = 5,
   ) {
     const res = await axios.get(
-      `https://graph.facebook.com/v24.0/${pageId}/insights`,
+      `https://graph.facebook.com/v24.0/${pageId}/posts`,
       {
         params: {
-          metric: 'page_impressions,page_engaged_users',
-          period: 'day',
+          fields:
+            'id,created_time,likes.summary(true),comments.summary(true)',
+          limit,
           access_token: pageAccessToken,
         },
       },

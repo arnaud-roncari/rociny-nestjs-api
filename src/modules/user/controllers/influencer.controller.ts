@@ -85,6 +85,16 @@ export class InfluencerController {
     );
     return new ProfilePictureUpdatedDto(newPic);
   }
+  
+  /** Get Facebook pages stats */
+    @ApiOperation({ summary: 'Get Facebook pages statistics' })
+    @UseGuards(AuthGuard)
+    @Get('social/facebook/pages/stats')
+    async getFacebookPagesStats(
+      @IdFromJWT() userId: number,
+    ): Promise<FacebookPageStatsDto[]> {
+      return await this.facebookService.getFacebookPageStats(userId);
+    }
 
   /** Replace all portfolio files */
   @ApiOperation({ summary: 'Replace portfolio' })
@@ -781,15 +791,5 @@ export class InfluencerController {
     @Body() body: UpdateSiretDto,
   ): Promise<void> {
     await this.influencerService.updateSiret(userId, body.siret);
-  }
-  
-  /** Get Facebook pages stats */
-  @ApiOperation({ summary: 'Get Facebook pages statistics' })
-  @UseGuards(AuthGuard)
-  @Get('social/facebook/pages/stats')
-  async getFacebookPagesStats(
-    @IdFromJWT() userId: number,
-  ): Promise<FacebookPageStatsDto[]> {
-    return await this.facebookService.getFacebookPageStats(userId);
   }
 }
