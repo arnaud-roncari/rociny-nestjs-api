@@ -15,6 +15,7 @@ import { InfluencerEntity } from '../entities/influencer.entity';
 import { InfluencerProfileCompletionStatusEntity } from '../entities/influencer_profile_completion_status.entity';
 import { FacebookRepository } from 'src/modules/facebook/facebook.repository';
 import { InfluencerStatisticsEntity } from '../entities/influencer_statistics.entity';
+import { UserRepository } from '../repositories/user.repository';
 
 @Injectable()
 export class InfluencerService {
@@ -23,6 +24,7 @@ export class InfluencerService {
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
     private readonly facebookRepository: FacebookRepository,
+    private readonly userRepository: UserRepository,
   ) {}
 
   /**
@@ -494,12 +496,41 @@ export class InfluencerService {
     if (!influencer) {
       throw new UserNotFoundException();
     }
+    
+    try {
+      //  Tentative normale avec le compte existant
+      const url = await this.stripeService.createAccountLink(
+        influencer.stripeAccountId,
+      );
+      return url;
+    } catch (error) {
+      //  Cas : compte Stripe supprimé / invalide
+      if (
+        error instanceof Error &&
+        error.message.includes('Stripe account not found')
+      ) {
+        const user = await this.userRepository.getUserById(influencer.userId);
 
-    const url = await this.stripeService.createAccountLink(
-      influencer.stripeAccountId,
-    );
+        // 1️ recréer un compte Stripe Express
+        const newStripeAccount = await this.stripeService.createAccount(
+          user.email,
+        );
 
-    return url;
+        // 2️ mettre à jour la BDD
+        await this.influencerRepository.updateStripeAccountId(
+          newStripeAccount.id,
+          influencer.id,
+        );
+
+        // 3️ recréer un lien d’onboarding
+        const url = await this.stripeService.createAccountLink(
+          newStripeAccount.id,
+        );
+        return url;
+      }
+
+      throw error;
+    }
   }
 
   /**

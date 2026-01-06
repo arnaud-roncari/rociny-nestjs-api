@@ -38,6 +38,22 @@ export class StripeService implements OnModuleInit {
     }
   }
 
+  private async safeRetrieveAccount(
+    stripeAccountId: string,
+  ): Promise<Stripe.Account | null> {
+    try {
+      return await StripeService.stripe.accounts.retrieve(stripeAccountId);
+    } catch (err: any) {
+      if (
+        err?.type === 'StripeInvalidRequestError' ||
+        err?.code === 'account_invalid'
+      ) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
   /**
    * Creates a connected Stripe Express account for an influencer.
    */
@@ -56,12 +72,22 @@ export class StripeService implements OnModuleInit {
    * Generates a link for onboarding a connected account.
    */
   async createAccountLink(accountId: string): Promise<string> {
+    const account = await this.safeRetrieveAccount(accountId);
+    if (!account) {
+       throw new Error('Stripe account not found');
+    }
+
     const accountLink = await StripeService.stripe.accountLinks.create({
       account: accountId,
       refresh_url: 'https://rociny.com/onboarding/refresh',
       return_url: 'https://rociny.com/onboarding/complete',
       type: 'account_onboarding',
     });
+
+    if (!accountLink.url) {
+      throw new Error('Stripe account link URL is null');
+    }
+
     return accountLink.url;
   }
 
@@ -69,8 +95,12 @@ export class StripeService implements OnModuleInit {
    * Checks if a connected account has completed all required onboarding steps.
    */
   async isAccountCompleted(stripeAccountId: string): Promise<boolean> {
-    const account =
-      await StripeService.stripe.accounts.retrieve(stripeAccountId);
+    const account = await this.safeRetrieveAccount(stripeAccountId);
+
+    if (!account) {
+      return false;
+    }
+
     return (
       account.details_submitted === true &&
       account.charges_enabled === true &&
@@ -82,6 +112,11 @@ export class StripeService implements OnModuleInit {
    * Generates a login link to Stripe Express dashboard.
    */
   async createLoginLink(accountId: string): Promise<string> {
+    const account = await this.safeRetrieveAccount(accountId);
+    if (!account) {
+      throw new Error('Stripe account not found');
+    }
+
     const loginLink =
       await StripeService.stripe.accounts.createLoginLink(accountId);
     return loginLink.url;
@@ -293,6 +328,14 @@ export class StripeService implements OnModuleInit {
     amount: number,
     collaborationId: number,
   ): Promise<{ transferId: string; amountMinor: number }> {
+    const account = await this.safeRetrieveAccount(destination);
+    if (!account) {
+      throw new Error('Stripe account not found');
+    }
+    if (amount <= 0) {
+    throw new Error('Invalid transfer amount');
+  }
+
     const amountMinor = Math.round(amount * 100);
     const transfer = await StripeService.stripe.transfers.create(
       {
@@ -373,6 +416,12 @@ export class StripeService implements OnModuleInit {
     placements: ProductPlacementEntity[],
     isQuote: boolean = false,
   ) {
+    // Check if the stripe account exist
+    const stripeAccountId = influencer.stripeAccountId;
+    const account = await this.safeRetrieveAccount(stripeAccountId);
+    if (!account) {
+      throw new Error('Stripe account not found');
+    }
     let taxRateId: string | undefined;
 
     // Get tax rate if influencer has VAT

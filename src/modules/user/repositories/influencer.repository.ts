@@ -110,6 +110,21 @@ export class InfluencerRepository {
     return InfluencerEntity.fromJson(result[0]);
   }
 
+  async updateStripeAccountId(
+    stripeAccountId: string,
+    influencerId: number,
+  ): Promise<void> {
+    const query = `
+        UPDATE api.influencers
+        SET stripe_account_id = $1
+        WHERE id = $2
+      `;
+    const result = await this.postgresqlService.query(query, [
+      stripeAccountId,
+      influencerId,
+    ]);
+  }
+
   /**
    * Update the portfolio of an influencer.
    * @param userId - The user's id.
