@@ -3,6 +3,8 @@ import Stripe from 'stripe';
 import { ProductPlacementEntity } from '../user/entities/product_placement.entity';
 import { CompanyEntity } from '../user/entities/company.entity';
 import { InfluencerEntity } from '../user/entities/influencer.entity';
+import { StripeCustomerNotFoundError } from './errors/stripe-customer-not-found.error';
+
 
 @Injectable()
 export class StripeService implements OnModuleInit {
@@ -47,6 +49,28 @@ export class StripeService implements OnModuleInit {
       if (
         err?.type === 'StripeInvalidRequestError' ||
         err?.code === 'account_invalid'
+      ) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async safeRetrieveCustomer(
+    customerId: string,
+  ): Promise<Stripe.Customer | null> {
+    try {
+      const customer = await StripeService.stripe.customers.retrieve(customerId);
+
+      if ('deleted' in customer && customer.deleted) {
+        return null;
+      }
+
+      return customer as Stripe.Customer;
+    } catch (err: any) {
+      if (
+        err?.type === 'StripeInvalidRequestError' ||
+        err?.code === 'No such customer'
       ) {
         return null;
       }
@@ -241,6 +265,10 @@ export class StripeService implements OnModuleInit {
   async createSetupIntent(
     customerId: string,
   ): Promise<Stripe.Response<Stripe.SetupIntent>> {
+    const customer = await this.safeRetrieveCustomer(customerId);
+    if (!customer) {
+       throw new StripeCustomerNotFoundError(customerId);
+    }
     return await StripeService.stripe.setupIntents.create({
       customer: customerId,
     });
@@ -250,6 +278,10 @@ export class StripeService implements OnModuleInit {
    * Checks if a customer has a card payment method attached.
    */
   async hasCardPaymentMethod(customerId: string): Promise<boolean> {
+    const customer = await this.safeRetrieveCustomer(customerId);
+    if (!customer) {
+      return false; 
+    }
     const paymentMethods = await StripeService.stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',

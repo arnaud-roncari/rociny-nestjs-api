@@ -19,6 +19,8 @@ import { CompanyProfileCompletionStatusEntity } from '../entities/company_profil
 import { InfluencerSummary } from '../entities/influencer_summary.entity';
 import { InfluencerRepository } from '../repositories/influencer.repository';
 import { SearchInfluencersByFiltersDto } from '../dtos/search-influencers-by-filters.dto';
+import { UserRepository } from '../repositories/user.repository';
+import { StripeCustomerNotFoundError } from 'src/modules/stripe/errors/stripe-customer-not-found.error';
 
 @Injectable()
 export class CompanyService {
@@ -28,6 +30,7 @@ export class CompanyService {
     private readonly facebookRepository: FacebookRepository,
     private readonly minioService: MinioService,
     private readonly stripeService: StripeService,
+    private readonly userRepository: UserRepository,
   ) {}
 
   /**
@@ -413,12 +416,54 @@ export class CompanyService {
     if (!user) {
       throw new UserNotFoundException();
     }
+    try {
+      return await this.stripeService.createSetupIntent(user.stripeCustomerId);
+    } catch (error: any) {
+      if (error instanceof StripeCustomerNotFoundError) {
+        const user1 = await this.userRepository.getUserById(user.userId);
+        const newCustomer = await this.stripeService.createCustomer(user1.email);
 
-    const setupIntent = await this.stripeService.createSetupIntent(
-      user.stripeCustomerId,
-    );
+        await this.companyRepository.updateStripeCustomerId(
+          newCustomer.id,
+          user.id,
+        );
 
-    return setupIntent;
+        const setupIntent = await this.stripeService.createSetupIntent(newCustomer.id);
+        return setupIntent;
+      }
+
+      throw error;
+    }
+  }
+
+  async createPaymentSheetData(userId: number) {
+    const company = await this.companyRepository.getCompany(userId);
+    if (!company) throw new UserNotFoundException();
+
+    const user = await this.userRepository.getUserById(company.userId);
+
+    let customerId = company.stripeCustomerId;
+    const customer = customerId
+      ? await this.stripeService.safeRetrieveCustomer(customerId)
+      : null;
+
+    if (!customer) {
+      const newCustomer = await this.stripeService.createCustomer(user.email);
+      customerId = newCustomer.id;
+
+      await this.companyRepository.updateStripeCustomerId(
+        customerId,
+        company.id,
+      );
+    }
+    const setupIntent = await this.createSetupIntent(userId);
+    const ephemeralKey = await this.createEphemeralKey(userId);
+
+    return {
+      setup_intent_secret: setupIntent.client_secret,
+      ephemeral_key_secret: ephemeralKey.secret,
+      customer_id: customerId,
+    };
   }
 
   /**

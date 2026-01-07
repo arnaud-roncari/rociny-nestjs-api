@@ -329,14 +329,7 @@ export class CompanyController {
   @UseGuards(AuthGuard)
   @Post('payments/setup-intent')
   async createSetupIntent(@IdFromJWT() userId: number): Promise<any> {
-    const company = await this.companyService.getCompany(userId);
-    const setupIntent = await this.companyService.createSetupIntent(userId);
-    const ephemeralKey = await this.companyService.createEphemeralKey(userId);
-    return {
-      setup_intent_secret: setupIntent.client_secret,
-      ephemeral_key_secret: ephemeralKey.secret,
-      customer_id: company.stripeCustomerId,
-    };
+    return await this.companyService.createPaymentSheetData(userId);
   }
 
   /**

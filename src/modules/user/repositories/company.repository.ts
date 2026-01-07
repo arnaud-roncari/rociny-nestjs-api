@@ -76,6 +76,18 @@ export class CompanyRepository {
     return CompanyEntity.fromJson(result[0]);
   }
 
+  async updateStripeCustomerId(
+    stripeCustomerId: string,
+    companyId: number,
+  ): Promise<void> {
+    const query = `
+      UPDATE api.companies
+      SET stripe_customer_id = $1
+      WHERE id = $2
+    `;
+    await this.postgresqlService.query(query, [stripeCustomerId, companyId]);
+  }
+
   /**
    * Update the profile picture of an company.
    * @param userId - The user's id.
