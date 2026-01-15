@@ -13,6 +13,8 @@ export interface CollaborationEntityParams {
   influencerInvoice?: string | null;
   contract?: string | null;
   createdAt: Date;
+  companyPaidAt?: Date | null;
+  payoutStatus?: string | null;
   productPlacements: ProductPlacementEntity[];
 }
 
@@ -29,6 +31,8 @@ export class CollaborationEntity {
   influencerQuote?: string | null;
   contract?: string | null;
   createdAt: Date;
+  companyPaidAt?: Date | null;
+  payoutStatus?: string | null;
   productPlacements: ProductPlacementEntity[];
 
   constructor(params: CollaborationEntityParams) {
@@ -49,6 +53,10 @@ export class CollaborationEntity {
       influencerQuote: json.influencer_quote ?? null,
       contract: json.contract ?? null,
       createdAt: new Date(json.created_at),
+      companyPaidAt: json.company_paid_at
+      ? new Date(json.company_paid_at)
+      : null,
+      payoutStatus: json.payout_status ?? null,
       productPlacements: ProductPlacementEntity.fromJsons(
         json.product_placements ?? [],
       ),

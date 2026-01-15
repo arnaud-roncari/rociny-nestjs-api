@@ -536,8 +536,8 @@ export class CompanyController {
   @Post('collaborations/:id/validate')
   async validateCollaboration(
     @Param('id') collaborationId: number,
-  ): Promise<any> {
-    await this.collaborationService.validateCollaboration(collaborationId);
+  ): Promise<{ status: 'PAID' | 'SCHEDULED'; daysRemaining?: number }> {
+    return await this.collaborationService.validateCollaboration(collaborationId);
   }
 
   /**

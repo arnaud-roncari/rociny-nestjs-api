@@ -78,6 +78,41 @@ export class CollaborationRepository {
     await this.postgresqlService.query(query, [status, id]);
   }
 
+  async setCompanyPaidAt(
+    collaborationId: number,
+    date: Date,
+  ): Promise<void> {
+    const query = `
+    UPDATE api.collaborations
+    SET company_paid_at = $1
+    WHERE id = $2
+    `;
+    await this.postgresqlService.query(query, [date, collaborationId]);    
+  }
+
+  async setPayoutStatus(
+    collaborationId: number,
+    status: 'scheduled' | 'paid',
+  ): Promise<void> {
+    const query =`
+    UPDATE api.collaborations
+    SET payout_status = $1
+    WHERE id = $2
+    `;
+    await this.postgresqlService.query(query, [status, collaborationId]);  
+  }
+  async findScheduledPayouts(): Promise<CollaborationEntity[]> {
+    const rows = `
+    SELECT *
+    FROM api.collaborations
+    WHERE status = 'in_progress'
+      AND payout_status = 'scheduled'
+      AND company_paid_at IS NOT NULL
+    `;
+    const AlltransfertToDo = await this.postgresqlService.query(rows);
+    return CollaborationEntity.fromJsons(AlltransfertToDo);
+  }
+
   /**
    * Updates only the invoice fields of a collaboration.
    *

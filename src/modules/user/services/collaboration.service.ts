@@ -393,6 +393,11 @@ export class CollaborationService {
       'in_progress',
     );
 
+    await this.collaborationRepository.setCompanyPaidAt(
+      collaborationId,
+      new Date(),
+    );
+
     const c = await this.collaborationRepository.findById(collaborationId);
     const company = await this.companyRepository.getCompanyById(c.companyId);
     const influencer = await this.influencerRepository.getInfluencerById(
@@ -418,7 +423,7 @@ export class CollaborationService {
    *
    * @param collaborationId - The ID of the collaboration to validate
    */
-  async validateCollaboration(collaborationId: number): Promise<void> {
+  async validateCollaboration(collaborationId: number): Promise<{status: 'PAID' | 'SCHEDULED'; daysRemaining?: number}> {
     // 1. Fetch collaboration, influencer, and company details in parallel
     const collaboration =
       await this.collaborationRepository.findById(collaborationId);
@@ -427,6 +432,30 @@ export class CollaborationService {
       this.influencerRepository.getInfluencerById(collaboration.influencerId),
       this.companyRepository.getCompanyById(collaboration.companyId),
     ]);
+
+    if (collaboration.payoutStatus === 'paid') {
+      return { status: 'PAID' };
+    }
+
+    // 2. Vérification délai 7 jours
+    const daysPassed = Math.floor(
+      (Date.now() - collaboration.companyPaidAt.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+
+    if (daysPassed < 7) {
+      const daysRemaining = 7 - daysPassed;
+
+      await this.collaborationRepository.setPayoutStatus(
+        collaborationId,
+        'scheduled',
+      );
+
+      return {
+        status: 'SCHEDULED',
+        daysRemaining,
+      };
+    }
 
     // 2. Calculate payment amounts
     const baseAmount = collaboration.getPrice();
@@ -498,6 +527,10 @@ export class CollaborationService {
       PIName,
       IIName,
     );
+    await this.collaborationRepository.setPayoutStatus(
+      collaborationId,
+      'paid',
+    ),
 
     await this.notificationService.send(
       company.userId,
@@ -508,6 +541,7 @@ export class CollaborationService {
       influencerData.userId,
       NotificationType.collaboration_done,
     );
+    return { status: 'PAID' };
   }
 
   async createReview(
